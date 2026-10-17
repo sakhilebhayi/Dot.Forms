@@ -181,6 +181,11 @@ jobs:
           # mode had started -- and says which, with the way back.
           trap 'if [ -f storage/framework/down ]; then echo "::error::The deploy failed AFTER maintenance mode started. The site was left DOWN on purpose. Rollback copy: $BACKUP. Inspect with server-logs.yml and run again, or restore the copy and run: php artisan up"; else echo "::error::The deploy failed BEFORE maintenance mode started; the site is still serving the previous release. Rollback copy: $BACKUP."; fi' ERR
 
+          # Git hooks on the host never run during a release. The Forms host's old
+          # checkout carries a Git LFS post-checkout hook but no git-lfs, so the
+          # first adopt died on `git checkout` AFTER maintenance mode started.
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null
+
           # ---- code
           if [ ! -d .git ]; then
             if [ "$MODE" != "adopt" ]; then
