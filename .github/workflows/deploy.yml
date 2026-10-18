@@ -23,7 +23,10 @@ name: Deploy to Production
 #      public/build.incoming on the host.
 #   3. On the host: rollback copy, maintenance mode, code to origin/main,
 #      composer install, production invariants (APP_DEBUG forced false; a
-#      warning, not a change, for APP_ENV=local or an http APP_URL), swap in the
+#      warning, not a change, for APP_ENV=local, an http APP_URL, or a setting
+#      this host cannot run: a non-sqlite DB_CONNECTION, BROADCAST_CONNECTION
+#      reverb/pusher/ably, QUEUE_CONNECTION sync/redis, SESSION_DRIVER or
+#      CACHE_STORE redis), swap in the
 #      new public/build, keep the docroot's build/ in step, migrations, caches,
 #      back up.
 #   4. Installs the cron lines (2: schedule:run, queue:work) through the shared crontab block, with its
@@ -263,6 +266,22 @@ jobs:
           # Not changed here (it can alter behaviour), but never silent.
           if grep -q '^APP_ENV=local' .env; then echo "::warning::APP_ENV=local in the production .env; set it to production."; fi
           if grep -qE '^APP_URL=http://' .env; then echo "::warning::APP_URL is http://, not https://; set it to the https address."; fi
+          # This host is cPanel shared hosting: one SQLite file, no Redis, no
+          # websocket server, and the only worker is the cron `queue:work`. A
+          # .env that selects anything else cannot work here, so say so. Warn
+          # only, never change: a wrong guess about the host would be worse.
+          # An unset key falls back to the config default, which is the right one.
+          env_value() { { grep -E "^$1=" .env || true; } | tail -n 1 | cut -d= -f2- | sed -e 's/[[:space:]]*#.*$//' -e 's/[[:space:]]*$//' -e "s/^['\"]//" -e "s/['\"]\$//" | tr -d '\r' | tr '[:upper:]' '[:lower:]'; }
+          INV_DB="$(env_value DB_CONNECTION)"
+          INV_BROADCAST="$(env_value BROADCAST_CONNECTION)"
+          INV_QUEUE="$(env_value QUEUE_CONNECTION)"
+          INV_SESSION="$(env_value SESSION_DRIVER)"
+          INV_CACHE="$(env_value CACHE_STORE)"
+          if [ -n "$INV_DB" ] && [ "$INV_DB" != "sqlite" ]; then echo "::warning::DB_CONNECTION=$INV_DB in the production .env; this host runs on SQLite (DB_CONNECTION=sqlite) and has no other database to talk to."; fi
+          case "$INV_BROADCAST" in reverb|pusher|ably) echo "::warning::BROADCAST_CONNECTION=$INV_BROADCAST in the production .env; this host has no websocket server. Set BROADCAST_CONNECTION=null."; esac
+          case "$INV_QUEUE" in sync) echo "::warning::QUEUE_CONNECTION=sync in the production .env; jobs would run inside the web request. Set QUEUE_CONNECTION=database (cron drains it).";; redis) echo "::warning::QUEUE_CONNECTION=redis in the production .env; this host has no Redis. Set QUEUE_CONNECTION=database."; esac
+          if [ "$INV_SESSION" = "redis" ]; then echo "::warning::SESSION_DRIVER=redis in the production .env; this host has no Redis. Set SESSION_DRIVER=database."; fi
+          if [ "$INV_CACHE" = "redis" ]; then echo "::warning::CACHE_STORE=redis in the production .env; this host has no Redis. Set CACHE_STORE=database."; fi
 
           # ---- frontend: swap the staged build in, keep the docroot copy in step
           # public/build is gitignored, so git never refreshes it. The docroot

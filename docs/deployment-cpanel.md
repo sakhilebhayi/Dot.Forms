@@ -28,7 +28,7 @@ Run **Deploy to Production** with `confirm=deploy` (`gh workflow run deploy.yml 
 
 - A rollback copy of the app folder (without `vendor/`, `node_modules/`, logs and the build) is written to `~/dot-forms-<mode>-<time>.tgz`; the newest three are kept. To restore: stop writes, `tar xzf` it over the app folder, `php artisan up`.
 - A failure after maintenance mode starts **leaves the site down** and says so, with the copy's name. A failure before it says the site is untouched.
-- `APP_DEBUG` is forced to `false` on every run, because with it on any error prints a ~840 KB debug page to every visitor. `APP_ENV=local` and an `http://` `APP_URL` are reported as warnings, not changed.
+- `APP_DEBUG` is forced to `false` on every run, because with it on any error prints a ~840 KB debug page to every visitor. `APP_ENV=local` and an `http://` `APP_URL` are reported as warnings, not changed. So are settings this host cannot run: a `DB_CONNECTION` other than `sqlite`, `BROADCAST_CONNECTION` `reverb`/`pusher`/`ably`, `QUEUE_CONNECTION` `sync`/`redis`, `SESSION_DRIVER=redis`, `CACHE_STORE=redis` (an unset key is fine: the config defaults are the right ones).
 - Cron: one scheduled command (forms:close-expired) and queued jobs on the named queues notifications, ai and default. The deploy installs 2 lines through the same locked, verified crontab block as the other Dot apps, so the account's crontab grows by 2 the first time. Every deploy log prints `== crontab: 2 line(s) for # dot-forms installed, M other line(s) preserved`; M must not shrink.
 - The smoke check requests `/`, `/login`, `/up`, the built CSS and a harmless `POST /up`, and fails the run if any is wrong or if a debug page is served.
 
