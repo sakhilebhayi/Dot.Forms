@@ -135,7 +135,7 @@
                             Form builder for teams
                         </p>
 
-                        <h1 class="font-display font-semibold text-4xl sm:text-5xl lg:text-6xl leading-[1.08] tracking-tight text-[var(--ink)] mb-6">
+                        <h1 class="font-display font-semibold text-4xl sm:text-5xl lg:text-6xl leading-[1.08] sm:leading-none tracking-tight text-[var(--ink)] mb-6">
                             Build the form.<br>Skip the spreadsheet.
                         </h1>
 
@@ -195,7 +195,7 @@
             <div class="max-w-[1400px] mx-auto">
                 <div class="max-w-xl mb-16 reveal" data-reveal>
                     <p class="font-mono text-xs tracking-[0.18em] uppercase text-[var(--red)] mb-4">What it does</p>
-                    <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--ink)] leading-tight">
+                    <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--ink)] leading-tight sm:leading-10">
                         Everything a form needs to go from draft to data
                     </h2>
                 </div>
@@ -228,7 +228,7 @@
                 <div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-12 lg:gap-20">
                     <div class="reveal" data-reveal>
                         <p class="font-mono text-xs tracking-[0.18em] uppercase text-[var(--red)] mb-4">Built for the team</p>
-                        <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--ink)] leading-tight mb-5">
+                        <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--ink)] leading-tight sm:leading-10 mb-5">
                             Runs one workspace or a dozen forms, from a browser
                         </h2>
                         <p class="text-[var(--ink-soft)] leading-relaxed max-w-sm">
@@ -265,7 +265,7 @@
             <div class="absolute inset-0" style="background: linear-gradient(180deg, var(--paper) 0%, rgba(251,246,234,0.86) 45%, var(--paper) 100%);"></div>
 
             <div class="relative z-10 max-w-2xl mx-auto text-center reveal" data-reveal>
-                <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--ink)] leading-tight mb-5">
+                <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--ink)] leading-tight sm:leading-10 mb-5">
                     Ready to publish your first form?
                 </h2>
                 <p class="text-[var(--ink-soft)] leading-relaxed mb-10 max-w-lg mx-auto">
