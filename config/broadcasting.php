@@ -13,9 +13,14 @@ return [
     |
     | Supported: "reverb", "pusher", "ably", "redis", "log", "null"
     |
+    | Production has no websocket server, so this is "null": nothing is
+    | broadcast and the builder's presence banners never appear. Set it to
+    | "reverb" only where a Reverb server runs, and build the frontend with
+    | VITE_REVERB_* set (resources/js/echo.js).
+    |
     */
 
-    'default' => env('BROADCAST_CONNECTION', 'log'),
+    'default' => env('BROADCAST_CONNECTION', 'null'),
 
     /*
     |--------------------------------------------------------------------------

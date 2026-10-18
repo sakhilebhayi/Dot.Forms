@@ -58,7 +58,7 @@ See [`wiki.md`](wiki.md) for the full, code-verified breakdown of what's built v
 | Exports | Laravel Excel (`maatwebsite/excel`) for CSV/XLSX |
 | Queue | Database queue driver, drained by cron (`queue:work --stop-when-empty`); the AI jobs are dispatched synchronously from Livewire today |
 
-**Not currently implemented, despite related env vars or historical docs suggesting otherwise:** Laravel Reverb (real-time collaboration is Cache+polling, not broadcasting), Laravel Scout/Meilisearch (search is plain SQL), Redis/Laravel Horizon. See `wiki.md` §4 for details.
+**Not used in production:** Laravel Reverb / any websocket server (the host has none: `BROADCAST_CONNECTION=null`, so the builder's "who else is editing" and "just saved" banners never appear; the frontend only opens a websocket if it is built with `VITE_REVERB_APP_KEY`), Laravel Scout/Meilisearch (search is plain SQL), Redis/Laravel Horizon. See `wiki.md` §4 for details.
 
 ## Tailwind CSS 4
 

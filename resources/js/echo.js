@@ -1,14 +1,15 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-window.Pusher = Pusher;
-
 // Reverb speaks the Pusher protocol, so laravel-echo's 'reverb' broadcaster
 // is really just its Pusher connector pointed at our own server. Only
-// initialize it when the keys are actually configured (BROADCAST_CONNECTION
-// defaults to "log" for local dev/CI -- see .env.example) so the app
-// doesn't try to open a websocket connection to nothing.
+// initialize it when VITE_REVERB_APP_KEY is set at build time (production has
+// no websocket server, BROADCAST_CONNECTION=null and the key is unset -- see
+// .env.example) so the app never opens a websocket to nothing. Without a key
+// window.Echo stays undefined; every consumer must check for it.
 if (import.meta.env.VITE_REVERB_APP_KEY) {
+    window.Pusher = Pusher;
+
     window.Echo = new Echo({
         broadcaster: 'reverb',
         key: import.meta.env.VITE_REVERB_APP_KEY,
