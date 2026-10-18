@@ -262,6 +262,9 @@ class Builder extends Component
             ]);
         }
 
+        // The bulk fields()->delete() above fires no model events.
+        $this->form->forgetPublicCache();
+
         $this->form->refresh();
         $this->hydrateState();
         session()->flash('status', 'Form reverted to version #'.$version->version_number.'.');

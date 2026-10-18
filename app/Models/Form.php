@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTeamScope;
+use App\Services\PublicFormCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,26 @@ class Form extends Model
 {
     use HasFactory;
     use HasTeamScope;
+
+    protected static function booted(): void
+    {
+        // The public view caches this form by slug (see PublicFormCache):
+        // any save or delete, including publish/unpublish/archive/close and
+        // a slug change, must drop the cached copy under both the new and
+        // the previous slug.
+        static::saved(fn (Form $form) => $form->forgetPublicCache());
+        static::deleted(fn (Form $form) => $form->forgetPublicCache());
+    }
+
+    /**
+     * Drop the cached public/preview copy of this form. Model events call
+     * this already; call it directly after a bulk query that bypasses them
+     * (e.g. $form->fields()->delete()).
+     */
+    public function forgetPublicCache(): void
+    {
+        PublicFormCache::forget($this->slug, $this->getOriginal('slug'));
+    }
 
     /**
      * The attributes that are mass assignable.

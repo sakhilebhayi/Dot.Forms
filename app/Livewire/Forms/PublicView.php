@@ -8,8 +8,8 @@ use App\Models\FormSubmission;
 use App\Notifications\NewFormSubmissionNotification;
 use App\Services\FormFieldVisibilityEvaluator;
 use App\Services\FormSubmissionIntegrationDispatcher;
+use App\Services\PublicFormCache;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -45,9 +45,7 @@ class PublicView extends Component
     {
         $preview = request()->boolean('preview');
 
-        $cacheKey = 'form:public:'.$slug.':'.($preview ? 'preview' : 'live');
-
-        $this->form = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($preview, $slug) {
+        $this->form = app(PublicFormCache::class)->remember($slug, $preview, function () use ($preview, $slug) {
             // Public/preview lookups must resolve by slug regardless of the
             // viewer's own current team (an authenticated team member may be
             // viewing another team's published form, or previewing while a
@@ -58,7 +56,7 @@ class PublicView extends Component
                 $query->where('is_published', true);
             }
 
-            return $query->with('fields')->firstOrFail();
+            return $query->with(['fields' => fn ($fields) => $fields->orderBy('order')])->firstOrFail();
         });
 
         if ($preview) {
