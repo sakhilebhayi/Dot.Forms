@@ -2,17 +2,25 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Jetstream\DeleteTeam;
+use App\Actions\Jetstream\DeleteUser;
 use App\Livewire\Forms\Builder;
 use App\Livewire\Forms\PublicView;
 use App\Models\Form;
+use App\Models\FormField;
 use App\Models\FormSubmission;
+use App\Models\Team;
 use App\Models\User;
 use App\Services\PublicFormCache;
+use Illuminate\Cache\Events\KeyForgetFailed;
+use Illuminate\Cache\Events\KeyForgotten;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -358,5 +366,278 @@ class PublicFormCacheTest extends TestCase
         $component->call('revertToVersion', $first->id);
 
         $this->get('/forms/cached-form')->assertOk()->assertDontSee('Second Title');
+    }
+
+    /**
+     * @return array{0: User, 1: Team, 2: Form}
+     */
+    private function ownerWithSecondTeamForm(): array
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+
+        $team = Team::forceCreate(['user_id' => $owner->id, 'name' => 'Agency', 'personal_team' => false]);
+
+        $form = Form::query()->create([
+            'team_id' => $team->id,
+            'user_id' => $owner->id,
+            'title' => 'Agency Form',
+            'slug' => 'agency-form',
+            'settings' => [],
+            'is_published' => true,
+        ]);
+
+        $form->fields()->create([
+            'type' => 'text', 'label' => 'Agency field', 'placeholder' => null,
+            'options' => [], 'validation_rules' => [], 'order' => 1,
+        ]);
+
+        return [$owner, $team, $form];
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_deleting_a_team_takes_its_public_and_preview_forms_offline(string $store): void
+    {
+        $this->usePersistentStore($store);
+        [$owner, $team] = $this->ownerWithSecondTeamForm();
+
+        $this->get('/forms/agency-form')->assertOk()->assertSee('Agency Form');
+        $this->actingAs($owner)->get('/forms/agency-form?preview=1')->assertOk();
+
+        app(DeleteTeam::class)->delete($team);
+
+        $this->get('/forms/agency-form')->assertNotFound();
+        $this->actingAs($owner->fresh())->get('/forms/agency-form?preview=1')->assertNotFound();
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_deleting_a_user_takes_the_forms_they_created_offline(string $store): void
+    {
+        $this->usePersistentStore($store);
+        [$owner, $team, $form] = $this->ownerWithSecondTeamForm();
+
+        $member = User::factory()->create();
+        $team->users()->attach($member, ['role' => 'editor']);
+        $form->update(['user_id' => $member->id]);
+
+        $this->get('/forms/agency-form')->assertOk();
+        $this->actingAs($owner)->get('/forms/agency-form?preview=1')->assertOk();
+
+        app(DeleteUser::class)->delete($member);
+
+        $this->assertNull(Form::withoutTeamScope()->find($form->id));
+        $this->get('/forms/agency-form')->assertNotFound();
+        $this->actingAs($owner->fresh())->get('/forms/agency-form?preview=1')->assertNotFound();
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_a_cached_preview_whose_team_is_gone_is_a_404_not_a_500(string $store): void
+    {
+        $this->usePersistentStore($store);
+        [$owner, $team] = $this->ownerWithSecondTeamForm();
+
+        $this->actingAs($owner)->get('/forms/agency-form?preview=1')->assertOk();
+
+        // Remove the team behind the cache's back (a cascade fires no events).
+        DB::table('teams')->where('id', $team->id)->delete();
+        $this->assertSame(0, Form::withoutTeamScope()->where('slug', 'agency-form')->count());
+
+        $this->actingAs($owner->fresh())->get('/forms/agency-form?preview=1')->assertNotFound();
+    }
+
+    public function test_the_page_still_renders_when_the_cache_store_is_unavailable(): void
+    {
+        $this->usePersistentStore('database');
+        $form = $this->publishedForm();
+
+        Schema::drop('cache');
+
+        $this->get('/forms/cached-form')->assertOk()->assertSee('Cached Form');
+        $this->get('/forms/cached-form')->assertOk();
+
+        // And a save does not blow up on the failed invalidation either.
+        $form->update(['title' => 'Edited while cache is down']);
+
+        $this->get('/forms/cached-form')->assertOk()->assertSee('Edited while cache is down');
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_a_payload_with_a_malformed_field_entry_is_a_miss(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $form = $this->publishedForm();
+
+        Cache::put(PublicFormCache::key('cached-form', false), [
+            'form' => $form->getAttributes(),
+            'fields' => ['not-an-array', ['no_id' => true]],
+        ], 600);
+
+        $this->get('/forms/cached-form')->assertOk()->assertSee('Your name');
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_a_payload_for_a_different_slug_is_never_served(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $form = $this->publishedForm();
+        $this->publishedForm(['title' => 'Other Form', 'slug' => 'other-form']);
+
+        Cache::put(PublicFormCache::key('other-form', false), [
+            'form' => $form->getAttributes(),
+            'fields' => [],
+        ], 600);
+
+        $this->get('/forms/other-form')->assertOk()->assertSee('Other Form');
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_very_long_slugs_keep_the_cache_key_short_and_distinct(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $a = str_repeat('a', 300);
+        $b = str_repeat('a', 299).'b';
+
+        foreach ([true, false] as $preview) {
+            $this->assertLessThanOrEqual(200, strlen(PublicFormCache::key($a, $preview)));
+        }
+        $this->assertNotSame(PublicFormCache::key($a, false), PublicFormCache::key($b, false));
+        $this->assertNotSame(PublicFormCache::key($a, false), PublicFormCache::key($a, true));
+
+        $this->publishedForm(['slug' => $a]);
+        $this->get('/forms/'.$a)->assertOk();
+        $this->get('/forms/'.$a)->assertOk()->assertSee('Cached Form');
+    }
+
+    private function builderFor(Form $form): Testable
+    {
+        $owner = User::query()->find($form->user_id);
+        $this->actingAs($owner);
+
+        return Livewire::test(Builder::class, ['team' => $owner->currentTeam, 'form' => $form]);
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_autosaving_a_many_field_form_issues_a_bounded_number_of_cache_operations(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $form = $this->publishedForm();
+        foreach (range(2, 30) as $order) {
+            $form->fields()->create([
+                'type' => 'text', 'label' => 'Field '.$order, 'placeholder' => null,
+                'options' => [], 'validation_rules' => [], 'order' => $order,
+            ]);
+        }
+
+        $builder = $this->builderFor($form);
+        $this->get('/forms/cached-form')->assertOk();
+
+        $forgets = 0;
+        Event::listen([KeyForgotten::class, KeyForgetFailed::class], function () use (&$forgets): void {
+            $forgets++;
+        });
+        $cacheQueries = 0;
+        DB::listen(function ($query) use (&$cacheQueries): void {
+            if (str_contains($query->sql, '"cache"')) {
+                $cacheQueries++;
+            }
+        });
+
+        $builder->call('saveDraft')->assertHasNoErrors();
+
+        // Once per key (live + preview), not once per saved field.
+        $this->assertLessThanOrEqual(4, $forgets, 'autosave must forget the cached form once, not once per field');
+
+        if ($store === 'database') {
+            $this->assertLessThanOrEqual(10, $cacheQueries);
+        }
+
+        $this->assertSame(30, $form->fields()->count());
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_a_visitor_reading_mid_save_cannot_leave_a_partial_form_cached(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $form = $this->publishedForm(['is_published' => true]);
+        $builder = $this->builderFor($form);
+
+        foreach (range(2, 6) as $order) {
+            $builder->call('addField', 'text');
+        }
+
+        // A visitor arrives after every field insert and caches whatever it sees.
+        Event::listen('eloquent.saved: '.FormField::class, function (): void {
+            app(PublicFormCache::class)->remember('cached-form', false, fn () => Form::withoutTeamScope()
+                ->with('fields')->where('slug', 'cached-form')->firstOrFail());
+        });
+
+        $builder->call('publish');
+
+        $seen = Form::withoutTeamScope()->where('slug', 'cached-form')->firstOrFail()->fields()->count();
+        $this->assertGreaterThan(1, $seen);
+
+        $payload = Cache::get(PublicFormCache::key('cached-form', false));
+        $this->assertTrue($payload === null || count($payload['fields']) === $seen, 'a stale partial form was left in the cache');
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_a_failure_mid_save_rolls_back_the_whole_builder_save(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $form = $this->publishedForm();
+        $builder = $this->builderFor($form);
+        $builder->call('addField', 'text')->call('addField', 'text');
+
+        $created = 0;
+        Event::listen('eloquent.creating: '.FormField::class, function () use (&$created): void {
+            if (++$created === 2) {
+                throw new \RuntimeException('boom');
+            }
+        });
+
+        try {
+            $builder->set('title', 'Half saved')->call('saveDraft');
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $form = $form->fresh();
+        $this->assertSame('Cached Form', $form->title);
+        $this->assertSame(1, $form->fields()->count());
+    }
+
+    #[DataProvider('persistentStores')]
+    public function test_a_failure_mid_revert_rolls_back_the_whole_revert(string $store): void
+    {
+        $this->usePersistentStore($store);
+        $form = $this->publishedForm();
+        $builder = $this->builderFor($form);
+
+        $version = $form->versions()->create([
+            'version_number' => 1,
+            'title' => 'Old title',
+            'description' => null,
+            'settings' => [],
+            'fields_snapshot' => [
+                ['type' => 'text', 'label' => 'A'],
+                ['type' => 'text', 'label' => 'B'],
+            ],
+        ]);
+
+        $created = 0;
+        Event::listen('eloquent.creating: '.FormField::class, function () use (&$created): void {
+            if (++$created === 2) {
+                throw new \RuntimeException('boom');
+            }
+        });
+
+        try {
+            $builder->call('revertToVersion', $version->id);
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $form = $form->fresh();
+        $this->assertSame('Cached Form', $form->title);
+        $this->assertSame(['Your name'], $form->fields()->pluck('label')->all());
     }
 }

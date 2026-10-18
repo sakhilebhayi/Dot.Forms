@@ -36,6 +36,16 @@ class Form extends Model
     }
 
     /**
+     * Drop the cached public/preview copy of every form a team or user owns.
+     * Deleting a team or user removes their forms through database cascades,
+     * which fire no Form events, so Team/User call this before they go.
+     */
+    public static function forgetPublicCacheFor(string $ownerColumn, int|string $ownerId): void
+    {
+        PublicFormCache::forget(...static::withoutTeamScope()->where($ownerColumn, $ownerId)->pluck('slug')->all());
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>

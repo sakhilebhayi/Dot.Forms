@@ -6,6 +6,7 @@ use App\Models\Form;
 use App\Models\FormField;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 /**
  * Ten-minute cache of the form a public (or preview) URL resolves to.
@@ -32,9 +33,49 @@ class PublicFormCache
 
     private const KEY_PREFIX = 'form:public:v2:';
 
+    /** Slugs longer than this are hashed so the key stays under the 255-character key limit. */
+    private const MAX_RAW_SLUG_LENGTH = 100;
+
+    private static int $deferDepth = 0;
+
+    /** @var array<string, true> */
+    private static array $deferredSlugs = [];
+
     public static function key(string $slug, bool $preview): string
     {
-        return self::KEY_PREFIX.$slug.':'.($preview ? 'preview' : 'live');
+        $part = strlen($slug) > self::MAX_RAW_SLUG_LENGTH ? 'sha256:'.hash('sha256', $slug) : $slug;
+
+        return self::KEY_PREFIX.$part.':'.($preview ? 'preview' : 'live');
+    }
+
+    /**
+     * Run $callback with invalidation held back: forget() calls made inside
+     * are collected and applied once, after the callback (and so after any
+     * database transaction it wraps) has finished. Used by multi-write saves
+     * such as the builder's, which would otherwise forget the same keys once
+     * per field.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public static function deferring(callable $callback): mixed
+    {
+        self::$deferDepth++;
+
+        try {
+            return $callback();
+        } finally {
+            self::$deferDepth--;
+
+            if (self::$deferDepth === 0) {
+                $slugs = array_keys(self::$deferredSlugs);
+                self::$deferredSlugs = [];
+
+                self::forget(...$slugs);
+            }
+        }
     }
 
     /**
@@ -44,15 +85,26 @@ class PublicFormCache
     {
         $key = self::key($slug, $preview);
 
-        $payload = Cache::get($key);
+        // The cache is an optimisation: a store that is down or misconfigured
+        // must never take the public page with it.
+        try {
+            $payload = Cache::get($key);
+        } catch (Throwable $e) {
+            report($e);
+            $payload = null;
+        }
 
-        if ($this->isPayload($payload)) {
+        if ($this->isPayload($payload, $slug)) {
             return $this->hydrate($payload);
         }
 
         $form = $resolve();
 
-        Cache::put($key, $this->dehydrate($form), now()->addMinutes(self::TTL_MINUTES));
+        try {
+            Cache::put($key, $this->dehydrate($form), now()->addMinutes(self::TTL_MINUTES));
+        } catch (Throwable $e) {
+            report($e);
+        }
 
         return $form;
     }
@@ -60,8 +112,18 @@ class PublicFormCache
     public static function forget(?string ...$slugs): void
     {
         foreach (array_unique(array_filter($slugs, fn (?string $slug) => $slug !== null && $slug !== '')) as $slug) {
-            Cache::forget(self::key($slug, false));
-            Cache::forget(self::key($slug, true));
+            if (self::$deferDepth > 0) {
+                self::$deferredSlugs[$slug] = true;
+
+                continue;
+            }
+
+            try {
+                Cache::forget(self::key($slug, false));
+                Cache::forget(self::key($slug, true));
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
     }
 
@@ -93,11 +155,22 @@ class PublicFormCache
         return $form;
     }
 
-    private function isPayload(mixed $payload): bool
+    private function isPayload(mixed $payload, string $slug): bool
     {
-        return is_array($payload)
-            && is_array($payload['form'] ?? null)
-            && isset($payload['form']['id'])
-            && is_array($payload['fields'] ?? null);
+        if (! is_array($payload)
+            || ! is_array($payload['form'] ?? null)
+            || ! isset($payload['form']['id'])
+            || ($payload['form']['slug'] ?? null) !== $slug
+            || ! is_array($payload['fields'] ?? null)) {
+            return false;
+        }
+
+        foreach ($payload['fields'] as $field) {
+            if (! is_array($field) || ! isset($field['id'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -61,7 +61,12 @@ class PublicView extends Component
 
         if ($preview) {
             abort_unless(Auth::check(), 403);
-            Gate::authorize('canEditForm', $this->form->team);
+            // A cached preview can outlive its team (a cascade delete fires
+            // no events); a form with no team is gone.
+            $team = $this->form->team;
+            abort_if($team === null, 404);
+
+            Gate::authorize('canEditForm', $team);
         }
 
         $this->startedAt = now()->timestamp;

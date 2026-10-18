@@ -15,6 +15,13 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    protected static function booted(): void
+    {
+        // The forms table cascades on delete, which fires no Form events, so
+        // drop their cached public copies while the rows can still be found.
+        static::deleting(fn (User $model) => Form::forgetPublicCacheFor('user_id', $model->getKey()));
+    }
+
     use HasApiTokens;
 
     /** @use HasFactory<UserFactory> */

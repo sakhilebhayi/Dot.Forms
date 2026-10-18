@@ -10,8 +10,10 @@ use App\Models\FormVersion;
 use App\Models\Team;
 use App\Rules\SafeWebhookUrl;
 use App\Services\Ai\AiFieldSuggestionEngine;
+use App\Services\PublicFormCache;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -242,30 +244,30 @@ class Builder extends Component
     {
         $version = $this->form->versions()->findOrFail($versionId);
 
-        $this->form->update([
-            'title' => $version->title,
-            'description' => $version->description,
-            'settings' => $version->settings,
-            'current_version' => $version->version_number,
-        ]);
-
-        $this->form->fields()->delete();
-
-        foreach (($version->fields_snapshot ?? []) as $index => $field) {
-            $this->form->fields()->create([
-                'type' => (string) ($field['type'] ?? 'text'),
-                'label' => (string) ($field['label'] ?? 'Untitled Field'),
-                'placeholder' => $field['placeholder'] ?? null,
-                'options' => $field['options'] ?? [],
-                'validation_rules' => $field['validation_rules'] ?? [],
-                'order' => $index + 1,
+        PublicFormCache::deferring(fn () => DB::transaction(function () use ($version): void {
+            $this->form->update([
+                'title' => $version->title,
+                'description' => $version->description,
+                'settings' => $version->settings,
+                'current_version' => $version->version_number,
             ]);
-        }
 
-        // The bulk fields()->delete() above fires no model events.
-        $this->form->forgetPublicCache();
+            $this->form->fields()->delete();
 
-        $this->form->refresh();
+            foreach (($version->fields_snapshot ?? []) as $index => $field) {
+                $this->form->fields()->create([
+                    'type' => (string) ($field['type'] ?? 'text'),
+                    'label' => (string) ($field['label'] ?? 'Untitled Field'),
+                    'placeholder' => $field['placeholder'] ?? null,
+                    'options' => $field['options'] ?? [],
+                    'validation_rules' => $field['validation_rules'] ?? [],
+                    'order' => $index + 1,
+                ]);
+            }
+
+            $this->form->refresh();
+        }));
+
         $this->hydrateState();
         session()->flash('status', 'Form reverted to version #'.$version->version_number.'.');
     }
@@ -379,69 +381,74 @@ class Builder extends Component
             $formData['logo_path'] = $this->logoUpload->store('form-logos', config('dotforms.forms.upload_disk', 'public'));
         }
 
-        $this->form->fill($formData);
-        $this->form->save();
+        // One atomic write: a visitor (or a failure) must never see or leave
+        // a half-saved form. Cache invalidation is held back and applied once
+        // after the commit instead of once per saved field.
+        PublicFormCache::deferring(fn () => DB::transaction(function () use ($formData, $validated): void {
+            $this->form->fill($formData);
+            $this->form->save();
 
-        $this->syncIntegrations($validated['settings']);
+            $this->syncIntegrations($validated['settings']);
 
-        $this->form->fields()->delete();
+            $this->form->fields()->delete();
 
-        foreach ($validated['fields'] as $index => $field) {
-            $options = [];
+            foreach ($validated['fields'] as $index => $field) {
+                $options = [];
 
-            if (in_array($field['type'], ['select', 'radio', 'checkbox'], true)) {
-                $options = collect(explode(',', (string) ($field['options'] ?? '')))
-                    ->map(fn (string $option) => trim($option))
-                    ->filter()
-                    ->values()
-                    ->all();
+                if (in_array($field['type'], ['select', 'radio', 'checkbox'], true)) {
+                    $options = collect(explode(',', (string) ($field['options'] ?? '')))
+                        ->map(fn (string $option) => trim($option))
+                        ->filter()
+                        ->values()
+                        ->all();
+                }
+
+                $rules = [];
+                if (! empty($field['required'])) {
+                    $rules[] = 'required';
+                }
+                if ($field['type'] === 'email') {
+                    $rules[] = 'email';
+                }
+                if ($field['type'] === 'number') {
+                    $rules[] = 'numeric';
+                }
+                if ($field['type'] === 'date') {
+                    $rules[] = 'date';
+                }
+
+                // Every field is deleted and recreated on each save, so a DB id
+                // is never stable enough for a visibility rule to reference --
+                // it's keyed by this stable builder-assigned UUID instead
+                // (also what makes a rule survive a version revert for free:
+                // the snapshot carries the same key-based options blob).
+                $key = (string) ($this->fields[$index]['key'] ?? Str::uuid());
+                $rule = $field['visibility_rule'] ?? null;
+                $triggerKey = is_array($rule) ? ($rule['trigger_field_key'] ?? null) : null;
+
+                $this->form->fields()->create([
+                    'type' => $field['type'],
+                    'label' => $field['label'],
+                    'placeholder' => $field['placeholder'] ?: null,
+                    'options' => [
+                        'choices' => $options,
+                        'helper_text' => $field['helper_text'] ?? null,
+                        'conditional_logic' => $field['conditional_logic'] ?? null,
+                        'field_key' => $key,
+                        'visibility_rule' => $triggerKey ? [
+                            'trigger_field_key' => $triggerKey,
+                            'operator' => $rule['operator'] ?? 'equals',
+                            'value' => $rule['value'] ?? '',
+                        ] : null,
+                    ],
+                    'validation_rules' => $rules,
+                    'order' => $index + 1,
+                ]);
             }
 
-            $rules = [];
-            if (! empty($field['required'])) {
-                $rules[] = 'required';
-            }
-            if ($field['type'] === 'email') {
-                $rules[] = 'email';
-            }
-            if ($field['type'] === 'number') {
-                $rules[] = 'numeric';
-            }
-            if ($field['type'] === 'date') {
-                $rules[] = 'date';
-            }
-
-            // Every field is deleted and recreated on each save, so a DB id
-            // is never stable enough for a visibility rule to reference --
-            // it's keyed by this stable builder-assigned UUID instead
-            // (also what makes a rule survive a version revert for free:
-            // the snapshot carries the same key-based options blob).
-            $key = (string) ($this->fields[$index]['key'] ?? Str::uuid());
-            $rule = $field['visibility_rule'] ?? null;
-            $triggerKey = is_array($rule) ? ($rule['trigger_field_key'] ?? null) : null;
-
-            $this->form->fields()->create([
-                'type' => $field['type'],
-                'label' => $field['label'],
-                'placeholder' => $field['placeholder'] ?: null,
-                'options' => [
-                    'choices' => $options,
-                    'helper_text' => $field['helper_text'] ?? null,
-                    'conditional_logic' => $field['conditional_logic'] ?? null,
-                    'field_key' => $key,
-                    'visibility_rule' => $triggerKey ? [
-                        'trigger_field_key' => $triggerKey,
-                        'operator' => $rule['operator'] ?? 'equals',
-                        'value' => $rule['value'] ?? '',
-                    ] : null,
-                ],
-                'validation_rules' => $rules,
-                'order' => $index + 1,
-            ]);
-        }
-
-        $this->form->refresh();
-        $this->createVersionSnapshot();
+            $this->form->refresh();
+            $this->createVersionSnapshot();
+        }));
         $this->hydrateState();
         $this->logoUpload = null;
 
