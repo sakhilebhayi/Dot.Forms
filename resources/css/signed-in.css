@@ -1,0 +1,148 @@
+/*
+ * Tailwind v4 entry for the signed-in pages that use the legacy layout
+ * (layouts/app.blade.php: dashboard, forms list, profile, team pages).
+ *
+ * That layout used to load the Tailwind v3 Play CDN with
+ * `tailwind.config = { corePlugins: { preflight: false } }`, and neither the
+ * forms nor the typography plugin. This entry reproduces exactly that: Tailwind's
+ * theme and utilities, NO preflight and NO plugins. The layout's own inline
+ * <style> (sidebar, dot-card, dot-btn ...) supplies the base styles, as it always
+ * did. Do not import 'tailwindcss' (that brings preflight) or add the
+ * @tailwindcss/forms plugin here: either would restyle every page on this layout.
+ * resources/css/app.css is the other entry (preflight ON, forms and typography),
+ * used by every other layout; the v3 compatibility rules below are the same ones
+ * app.css carries, minus the ones that only exist to patch preflight.
+ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import './tailwind-v3-palette.css';
+
+@source '../views/**/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../../vendor/laravel/jetstream/**/*.blade.php';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+/* v3 compatibility: see the same-named rules in app.css. */
+@custom-variant hover (&:hover);
+@custom-variant ltr (&:where([dir='ltr'], [dir='ltr'] *));
+@custom-variant rtl (&:where([dir='rtl'], [dir='rtl'] *));
+
+@theme {
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --breakpoint-2xl: 1536px;
+
+    --default-ring-width: 3px;
+    --default-ring-color: rgb(59 130 246 / 0.5);
+
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --radius: 0.25rem;
+    --radius-sm: 0.125rem;
+    --blur: 8px;
+    --blur-sm: 4px;
+}
+
+@layer utilities {
+    .transition {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity,
+            box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter;
+    }
+
+    .transition-colors {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    }
+
+    .outline-none,
+    .focus\:outline-none:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+    }
+
+    /*
+     * `space-y-*` and `divide-y*`: v3 put the margin / border on every child but the
+     * FIRST that is not `[hidden]`; v4 puts it on every child but the LAST. Same
+     * layout while every child is shown, but a hidden or conditionally absent edge
+     * child would now leave a stray gap or rule, and a table's `divide-y` would
+     * draw its rule on the other side of the row. Each v4 rule is cancelled (at the
+     * zero specificity it was written with, so any utility on the child still
+     * wins) and the v3 rule is put back. Only the sizes the views use are listed;
+     * add a size here before using it in a view that can hide its first or last child.
+     */
+    :where(:is(.space-y-1, .space-y-2, .space-y-3, .space-y-4, .space-y-6) > :not(:last-child)) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+
+    .space-y-1 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.25rem;
+        margin-bottom: 0;
+    }
+
+    .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.75rem;
+        margin-bottom: 0;
+    }
+
+    .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1rem;
+        margin-bottom: 0;
+    }
+
+    .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1.5rem;
+        margin-bottom: 0;
+    }
+
+    :where(:is(.divide-y, .divide-gray-100, .divide-gray-200) > :not(:last-child)) {
+        border-top-width: 0;
+        border-bottom-width: 0;
+        border-color: #e5e7eb;
+    }
+
+    .divide-y > :not([hidden]) ~ :not([hidden]) {
+        border-top-width: 1px;
+        border-bottom-width: 0;
+    }
+
+    .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+        border-color: #f3f4f6;
+    }
+
+    .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+        border-color: #e5e7eb;
+    }
+
+    /*
+     * Border style. v3 without preflight never set `border-style`: `border`,
+     * `border-t` ... only set a width, so on a div they drew nothing (the style
+     * stayed `none`), and on a button or input the browser's own style (outset,
+     * inset) stayed. v4's width utilities set `border-style: var(--tw-border-style)`,
+     * which defaults to solid and would turn every such rule into a visible line.
+     * The variable is `none` here (below), which reproduces the div case; the
+     * rule below puts the browser's own style back on the controls that have one.
+     * `border-solid` and the other style utilities set the variable themselves on
+     * the element, so they keep working, and are excluded from the revert.
+     */
+    :is(button, input, select, textarea, fieldset, hr):not(.border-solid, .border-dashed, .border-dotted, .border-double, .border-hidden, .border-none) {
+        border-style: revert;
+    }
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop {
+        --tw-border-style: none;
+    }
+}

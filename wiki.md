@@ -26,7 +26,7 @@ Dot.Forms is the team-scoped, dynamic form-builder platform in the InfoDot ecosy
 | Layer | Technology | Notes |
 |---|---|---|
 | Framework | Laravel 13, PHP 8.4 | `composer.json` pins `laravel/framework: ^13.0` — note the old README claimed Laravel 12; corrected in this pass |
-| UI | Livewire 3.6, Alpine.js (CDN, in the legacy `layouts/app.blade.php`), Tailwind CSS | Two parallel layout systems both actively used — see §2.1 |
+| UI | Livewire 3.6, Alpine.js (bundled with Livewire), Tailwind CSS (Vite; the legacy `layouts/app.blade.php` uses `resources/css/signed-in.css`) | Two parallel layout systems both actively used — see §2.1 |
 | Database | SQLite (`DB_CONNECTION=sqlite`, file `database/database.sqlite`) | The production host (cPanel shared) runs one SQLite file. `config/database.php` sets WAL, `busy_timeout` 5000, `synchronous` NORMAL and `transaction_mode` IMMEDIATE (needs PHP 8.4) so the concurrent writers (web requests, the 30 s builder autosave, the cron queue worker) wait for each other instead of failing with "database is locked". PostgreSQL is not used in production and is not tested; the historical notes below that mention it describe an older shared-`infodot` setup |
 | Auth | Laravel Sanctum 4 + `App\Http\Controllers\Auth\EcosystemAuthController` | SSO handoff from the InfoDot hub at `/auth/ecosystem` — verified to match the ecosystem-wide contract exactly (see §5) |
 | Teams | Jetstream 5.5 Teams | `Team hasMany Form`; every form-related route and Livewire `mount()` gates on team membership |
