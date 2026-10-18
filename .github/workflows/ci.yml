@@ -144,7 +144,7 @@ jobs:
           coverage: none
       # Audits composer.lock only; nothing is installed.
       - name: composer audit
-        run: composer audit --no-interaction
+        run: composer audit --locked --no-interaction
 
   npm-audit:
     name: npm audit (informational)
