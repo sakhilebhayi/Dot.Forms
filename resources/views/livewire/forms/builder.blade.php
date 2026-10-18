@@ -51,11 +51,16 @@
             👥 Currently editing: <span id="activeEditorsList"></span>
         </div>
 
-        <div id="builderUpdatedBanner" class="hidden" style="padding: 14px 16px; background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 8px; font-size: 14px; color: #92400E; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-            <span id="builderUpdatedMessage"></span>
-            <button type="button" onclick="window.location.reload()" style="padding: 6px 14px; background: #92400E; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">
-                Reload
-            </button>
+        {{-- The flex layout lives on the inner div: an inline `display: flex` on
+             the element that carries the `hidden` class would override it and
+             show this banner, empty, on every page load. --}}
+        <div id="builderUpdatedBanner" class="hidden" style="padding: 14px 16px; background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 8px; font-size: 14px; color: #92400E;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <span id="builderUpdatedMessage"></span>
+                <button type="button" onclick="window.location.reload()" style="padding: 6px 14px; background: #92400E; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">
+                    Reload
+                </button>
+            </div>
         </div>
 
         <!-- Main Layout -->
@@ -482,9 +487,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.Echo) {
-            // BROADCAST_CONNECTION isn't set to reverb (see .env.example) --
+            // No Echo client (the frontend was built without
+            // VITE_REVERB_APP_KEY, as in production -- see .env.example):
             // the builder still works, presence/live-update banners just
-            // don't appear.
+            // don't appear. Nothing here opens a connection or retries.
             return;
         }
 
