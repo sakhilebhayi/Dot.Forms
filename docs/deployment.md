@@ -6,7 +6,9 @@ Required env values:
 - APP_ENV=production
 - APP_DEBUG=false
 - APP_URL=https://your-domain
-- QUEUE_CONNECTION=database (or redis)
+- DB_CONNECTION=sqlite (production runs one SQLite file; see docs/deployment-cpanel.md)
+- QUEUE_CONNECTION=database (the cPanel host has no Redis)
+- BROADCAST_CONNECTION=null (no websocket server)
 - DOTFORMS_QUEUE_NOTIFICATIONS=notifications
 - DOTFORMS_QUEUE_AI=ai
 - OPENAI_API_KEY=...

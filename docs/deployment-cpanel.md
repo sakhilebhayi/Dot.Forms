@@ -56,7 +56,15 @@ One-time provisioning, after the release that ships this is deployed:
 
 Checks in the report: database, cache, scheduler, error rate, queue backlog and worker. A missing heartbeat is `unknown`, never a claim of health.
 
+### Database: one SQLite file
+
+Production uses SQLite (`DB_CONNECTION=sqlite`, `database/database.sqlite`), on PHP 8.4. PostgreSQL is not used here. `config/database.php` turns on, for that connection: `journal_mode=wal` (readers do not block the writer), `busy_timeout=5000` (a second writer waits up to 5 s instead of failing with "database is locked"), `synchronous=normal` and `transaction_mode=IMMEDIATE` (a transaction takes the write lock when it begins; the builder save reads before it writes, and a deferred transaction in that position can fail with a busy error that no timeout waits out; the setting only takes effect on PHP 8.4+). Each can be overridden in `.env` (`DB_BUSY_TIMEOUT`, `DB_JOURNAL_MODE`, `DB_SYNCHRONOUS`, `DB_TRANSACTION_MODE`).
+
+- WAL creates `database.sqlite-wal` and `database.sqlite-shm` beside the file while the app is running. They are part of the database: never delete them while the app is up, and copy all three (or use `forms:backup-database`) if you copy by hand. WAL needs a local disk; if the home directory is on a network filesystem, set `DB_JOURNAL_MODE=delete`.
+- The web requests, the cron `queue:work` and `schedule:run` must all run as the same account so they can share the `-shm` file; on cPanel they do.
+- The queue, cache and sessions are tables in the same file (`jobs`, `failed_jobs`, `cache`, `cache_locks`, `sessions`), so no Redis is needed or used. Submission notifications are mail-only, so no `notifications` table is needed.
+
 ### Nightly database backup
 
-`php artisan forms:backup-database` copies the SQLite file to `storage/backups/forms-YYYY-MM-DD.sqlite` using SQLite's online backup API (consistent even while the app writes) and keeps the newest 14 copies (`--keep=N`). It is scheduled daily at 02:40 server time through the same `schedule:run` cron line; the other Dot apps use 02:15 to 02:55, one minute-slot each. It does nothing on a non-SQLite database. The copy sits beside the live file on the same host, so it protects against a bad migration or deletion, not a lost host; copying it off the host is a separate step. To restore: stop writes, copy the chosen file over `database/database.sqlite`, start again. The release's rollback tarball also contains the SQLite file as of that deploy.
+`php artisan forms:backup-database` copies the SQLite file to `storage/backups/forms-YYYY-MM-DD.sqlite` using SQLite's online backup API (consistent even while the app writes) and keeps the newest 14 copies (`--keep=N`). It is scheduled daily at 02:40 server time through the same `schedule:run` cron line; the other Dot apps use 02:15 to 02:55, one minute-slot each. It does nothing on a non-SQLite database. The copy sits beside the live file on the same host, so it protects against a bad migration or deletion, not a lost host; copying it off the host is a separate step. To restore: stop writes, copy the chosen file over `database/database.sqlite` and delete any leftover `database.sqlite-wal` and `database.sqlite-shm`, start again. The release's rollback tarball also contains the SQLite file as of that deploy.
 

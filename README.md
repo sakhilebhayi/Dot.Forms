@@ -8,7 +8,7 @@
 
 <br />
 
-![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel&logoColor=white) ![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white) ![Livewire](https://img.shields.io/badge/Livewire-3-FB70A9?style=flat-square) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgsql-336791?style=flat-square&logo=postgresql&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel&logoColor=white) ![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white) ![Livewire](https://img.shields.io/badge/Livewire-3-FB70A9?style=flat-square) ![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite&logoColor=white)
 
 <br /><br />
 
@@ -51,12 +51,12 @@ See [`wiki.md`](wiki.md) for the full, code-verified breakdown of what's built v
 | Framework | Laravel 13 |
 | Language | PHP 8.4 |
 | Frontend | Livewire 3 · Tailwind CSS 4 via Vite (plus Alpine.js and the Tailwind Play CDN in the legacy layout) |
-| Database | PostgreSQL (shared `infodot` database across the ecosystem) |
+| Database | SQLite (one file, `database/database.sqlite`, WAL mode; PostgreSQL is not used in production) |
 | Auth | Laravel Sanctum 4 (InfoDot SSO) + Jetstream 5 Teams |
 | AI | OpenAI Chat Completions (`OPENAI_API_KEY`), with a rule-based fallback when no key is set |
 | Storage | Local/S3 via Flysystem (`config('filesystems')`) |
 | Exports | Laravel Excel (`maatwebsite/excel`) for CSV/XLSX |
-| Queue | Database queue driver by default; jobs are dispatched synchronously from Livewire today |
+| Queue | Database queue driver, drained by cron (`queue:work --stop-when-empty`); the AI jobs are dispatched synchronously from Livewire today |
 
 **Not currently implemented, despite related env vars or historical docs suggesting otherwise:** Laravel Reverb (real-time collaboration is Cache+polling, not broadcasting), Laravel Scout/Meilisearch (search is plain SQL), Redis/Laravel Horizon. See `wiki.md` §4 for details.
 
@@ -86,11 +86,11 @@ php artisan migrate
 php artisan serve
 ```
 
-> **Ecosystem SSO:** Set `DB_*` env vars to the shared InfoDot PostgreSQL instance and `APP_URL=https://forms.infodot.app`. Users authenticated through InfoDot gain access automatically via Sanctum handoff tokens.
+> **Database:** the default `.env.example` uses SQLite; `php artisan migrate` creates `database/database.sqlite` if you `touch` it first. **Ecosystem SSO:** set `APP_URL` to the app's address; users authenticated through InfoDot gain access automatically via Sanctum handoff tokens.
 
 ## Ecosystem
 
-**Dot.Forms** is one of **21 platforms** in the InfoDot ecosystem, connected via shared PostgreSQL and Sanctum SSO. Visit [InfoDot](https://github.com/sakhileb/InfoDot) to explore the full platform map.
+**Dot.Forms** is one of **21 platforms** in the InfoDot ecosystem, connected by Sanctum SSO (each platform has its own database). Visit [InfoDot](https://github.com/sakhileb/InfoDot) to explore the full platform map.
 
 ## License
 
