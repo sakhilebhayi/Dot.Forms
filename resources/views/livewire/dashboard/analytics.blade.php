@@ -1,7 +1,8 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Team Analytics</h2>
-    </x-slot>
+{{-- Livewire allows exactly one root element per component. The page layout
+     comes from the component's #[Layout] attribute, so this view must not
+     wrap itself in <x-app-layout>; the heading lives inside the root. --}}
+<div>
+    <h2 class="font-semibold text-xl text-gray-800 leading-tight">Team Analytics</h2>
 
     <div class="py-8">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
@@ -82,4 +83,4 @@
             });
         }
     </script>
-</x-app-layout>
+</div>

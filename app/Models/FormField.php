@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PublicFormCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FormField extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        // A field is part of what the cached public form shows and validates
+        // against, so changing one invalidates its form's cached copy.
+        static::saved(fn (FormField $field) => $field->forgetFormPublicCache());
+        static::deleted(fn (FormField $field) => $field->forgetFormPublicCache());
+    }
+
+    public function forgetFormPublicCache(): void
+    {
+        $slug = Form::withoutTeamScope()->whereKey($this->form_id)->value('slug');
+
+        PublicFormCache::forget($slug);
+    }
 
     /**
      * The attributes that are mass assignable.

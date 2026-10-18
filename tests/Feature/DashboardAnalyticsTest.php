@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Dashboard\Analytics;
+use App\Models\Form;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -28,5 +29,54 @@ class DashboardAnalyticsTest extends TestCase
 
         Livewire::test(Analytics::class)
             ->assertForbidden();
+    }
+
+    public function test_analytics_page_renders_for_an_authenticated_team_member(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+
+        $form = Form::query()->create([
+            'team_id' => $user->currentTeam->id,
+            'user_id' => $user->id,
+            'title' => 'Customer Survey',
+            'slug' => 'customer-survey',
+            'settings' => [],
+            'is_published' => true,
+            'views_count' => 4,
+        ]);
+
+        $form->submissions()->create([
+            'user_id' => null,
+            'data' => [],
+            'submitted_at' => now(),
+            'completion_seconds' => 30,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard.analytics'))
+            ->assertOk()
+            ->assertSee('Team Analytics')
+            ->assertSee('Total Submissions')
+            ->assertSee('Completion Rate')
+            ->assertSee('Avg Time To Complete')
+            ->assertSee('Customer Survey', false)
+            ->assertSee('submission-chart-data', false);
+    }
+
+    public function test_analytics_page_is_a_single_root_livewire_view(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(Analytics::class)
+            ->assertOk()
+            ->assertSee('Team Analytics')
+            ->assertSet('stats.total_submissions', 0);
+    }
+
+    public function test_analytics_page_requires_login(): void
+    {
+        $this->get(route('dashboard.analytics'))->assertRedirect();
     }
 }
