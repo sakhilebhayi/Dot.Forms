@@ -50,7 +50,7 @@ See [`wiki.md`](wiki.md) for the full, code-verified breakdown of what's built v
 |---|---|
 | Framework | Laravel 13 |
 | Language | PHP 8.3+ |
-| Frontend | Livewire 3 · Tailwind CSS (plus Alpine.js via CDN in the legacy layout) |
+| Frontend | Livewire 3 · Tailwind CSS 4 via Vite (plus Alpine.js and the Tailwind Play CDN in the legacy layout) |
 | Database | PostgreSQL (shared `infodot` database across the ecosystem) |
 | Auth | Laravel Sanctum 4 (InfoDot SSO) + Jetstream 5 Teams |
 | AI | OpenAI Chat Completions (`OPENAI_API_KEY`), with a rule-based fallback when no key is set |
@@ -59,6 +59,19 @@ See [`wiki.md`](wiki.md) for the full, code-verified breakdown of what's built v
 | Queue | Database queue driver by default; jobs are dispatched synchronously from Livewire today |
 
 **Not currently implemented, despite related env vars or historical docs suggesting otherwise:** Laravel Reverb (real-time collaboration is Cache+polling, not broadcasting), Laravel Scout/Meilisearch (search is plain SQL), Redis/Laravel Horizon. See `wiki.md` §4 for details.
+
+## Tailwind CSS 4
+
+Tailwind is v4, built by `@tailwindcss/vite` (`vite.config.js`). There is no `tailwind.config.js`, `postcss.config.js` or autoprefixer: everything that used to be config lives in `resources/css/app.css`.
+
+- **Which pages use it.** `resources/css/app.css` is loaded by the Livewire layout (`components/layouts/app.blade.php`: builder, submissions, AI pages, public form pages), the guest layouts (login, register, legal pages), the welcome page and the error pages. The legacy `layouts/app.blade.php` (dashboard, profile, teams, forms list) loads the Tailwind v3 Play CDN instead and never touches the Vite bundle, so this migration does not affect it.
+- `@import 'tailwindcss' source(none)` plus four `@source` lines (the old `content` globs, nothing wider: automatic detection would scan `app/`, `docs/` and `tests/`), `@plugin` for forms and typography.
+- **Every v4 default that moved a pixel is put back**, each with a comment in `app.css`: border colour (gray-200, not `currentColor`), pointer cursor on buttons, placeholder colour, `hover:` on touch screens, `ring` (3px blue-500/50), the `shadow`/`rounded`/`blur` scale renames, the transparent `outline-none`, the v3 `transition` property lists, the browser's own padding on `th`/`td`/`option`/the file button, `ltr:`/`rtl:` needing an explicit `dir`, px breakpoints, the v3 `font-sans`/`font-mono` stacks (declared `@theme inline`, because the layouts define their own `--font-mono`), the v3 palette hex values (`tailwind-v3-palette.css`; v4 moved to oklch) and the v3 colours of `prose`. The migration's rule is NO visual change: fix a difference in `app.css`, never by redesigning.
+- **`@tailwindcss/forms` and the cascade.** v4 puts the plugin in `@layer base`, below every utility, so a plain `border-gray-300` now beats the plugin's `:checked` rule (checked checkboxes got a gray outline). The plugin's `:focus`, `:checked` and `:indeterminate` rules are therefore re-emitted in `@layer utilities` in `app.css`; keep them in step with the plugin.
+- **`space-y-*` and `divide-y*`** put the margin or border on every child but the last (v3: every child but the first that is not `[hidden]`). The v3 rules are restored for the sizes the views use (`space-y-1/2/3/4/6`, `divide-y`, `divide-gray-100/200`); add a size to that block before using another one.
+- Things a view can still trip over, not compensated: `bg-opacity-*`, `ring-opacity-*` and friends no longer exist (use `bg-black/5`); `flex-shrink-*`/`flex-grow-*` are `shrink-*`/`grow-*`; the important marker goes last (`grid!`); `scale-*`, `translate-*` and `rotate-*` set their own properties, not `transform`; a `leading-*` class now beats the line-height of a `text-*` class at any breakpoint (v3: whichever came later in the stylesheet), which is why the welcome headings say `sm:leading-none` / `sm:leading-10` explicitly.
+- `@tailwindcss/typography` still pins a flagged `postcss-selector-parser`; `package.json` `overrides` pins it to ^7.1.6 so `npm audit --audit-level=moderate` is clean. Leave it until the plugin itself moves.
+- Browser floor: Chrome 111, Safari 16.4, Firefox 128 (cascade layers, `@property`, `color-mix`).
 
 ## Quick Start
 
