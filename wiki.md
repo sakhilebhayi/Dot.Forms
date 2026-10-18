@@ -25,7 +25,7 @@ Dot.Forms is the team-scoped, dynamic form-builder platform in the InfoDot ecosy
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Framework | Laravel 13, PHP 8.3+ | `composer.json` pins `laravel/framework: ^13.0` — note the old README claimed Laravel 12; corrected in this pass |
+| Framework | Laravel 13, PHP 8.4 | `composer.json` pins `laravel/framework: ^13.0` — note the old README claimed Laravel 12; corrected in this pass |
 | UI | Livewire 3.6, Alpine.js (CDN, in the legacy `layouts/app.blade.php`), Tailwind CSS | Two parallel layout systems both actively used — see §2.1 |
 | Database | PostgreSQL (`DB_CONNECTION=pgsql`) | Shared InfoDot instance — `DB_DATABASE` was left commented out (defaulting to `laravel`) before this pass; corrected to `DB_DATABASE=infodot` in `.env.example` to match every other platform |
 | Auth | Laravel Sanctum 4 + `App\Http\Controllers\Auth\EcosystemAuthController` | SSO handoff from the InfoDot hub at `/auth/ecosystem` — verified to match the ecosystem-wide contract exactly (see §5) |

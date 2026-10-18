@@ -8,7 +8,7 @@
 
 <br />
 
-![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel&logoColor=white) ![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php&logoColor=white) ![Livewire](https://img.shields.io/badge/Livewire-3-FB70A9?style=flat-square) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgsql-336791?style=flat-square&logo=postgresql&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel&logoColor=white) ![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square&logo=php&logoColor=white) ![Livewire](https://img.shields.io/badge/Livewire-3-FB70A9?style=flat-square) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgsql-336791?style=flat-square&logo=postgresql&logoColor=white)
 
 <br /><br />
 
@@ -49,7 +49,7 @@ See [`wiki.md`](wiki.md) for the full, code-verified breakdown of what's built v
 | Layer | Technology |
 |---|---|
 | Framework | Laravel 13 |
-| Language | PHP 8.3+ |
+| Language | PHP 8.4 |
 | Frontend | Livewire 3 · Tailwind CSS 4 via Vite (plus Alpine.js and the Tailwind Play CDN in the legacy layout) |
 | Database | PostgreSQL (shared `infodot` database across the ecosystem) |
 | Auth | Laravel Sanctum 4 (InfoDot SSO) + Jetstream 5 Teams |
