@@ -27,6 +27,17 @@ class FormBuilderUpdated implements ShouldBroadcast
         public string $editedByName,
     ) {}
 
+    /**
+     * Without a real broadcaster (the "null" and "log" drivers: production has
+     * no websocket server) there is nobody to tell, so do not queue a
+     * broadcast job at all. It would be a write on the single SQLite file for
+     * every builder save, picked up by the cron worker only to be discarded.
+     */
+    public function broadcastWhen(): bool
+    {
+        return ! in_array(config('broadcasting.default'), [null, 'null', 'log'], true);
+    }
+
     public function broadcastOn(): array
     {
         return [

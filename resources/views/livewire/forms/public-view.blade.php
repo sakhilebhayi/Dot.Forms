@@ -6,7 +6,7 @@
     // mode's step index/total stay a contiguous 0..N-1 over what the
     // respondent can actually see -- a field hidden by conditional logic
     // doesn't leave a gap or count toward the total.
-    $orderedFields = $form->fields()->orderBy('order')->get()
+    $orderedFields = $form->fields->sortBy('order')
         ->filter(fn ($field) => $this->isFieldVisible($field))
         ->values();
     $logoUrl = $form->logo_path ? asset('storage/' . $form->logo_path) : null;

@@ -38,12 +38,24 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
-            'transaction_mode' => 'DEFERRED',
+            // Production is ONE SQLite file with several concurrent writers
+            // (web requests, the 30 s builder autosave, the cron queue worker).
+            // WAL lets readers and the single writer run side by side; the
+            // busy timeout makes a second writer wait instead of failing with
+            // "database is locked"; IMMEDIATE takes the write lock when a
+            // transaction BEGINS, so one that reads first and writes later
+            // cannot hit an un-waitable SQLITE_BUSY (applied on PHP >= 8.4,
+            // which is why composer.json pins 8.4). Each is overridable, e.g.
+            // DB_JOURNAL_MODE=delete on a filesystem that cannot do WAL.
+            'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'wal'),
+            'synchronous' => env('DB_SYNCHRONOUS', 'normal'),
+            'transaction_mode' => env('DB_TRANSACTION_MODE', 'IMMEDIATE'),
         ],
 
+        // mysql, mariadb, pgsql and sqlsrv below are the framework's stock
+        // examples. Production is SQLite only; none of the others is used,
+        // configured or tested here.
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

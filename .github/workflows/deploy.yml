@@ -23,7 +23,10 @@ name: Deploy to Production
 #      public/build.incoming on the host.
 #   3. On the host: rollback copy, maintenance mode, code to origin/main,
 #      composer install, production invariants (APP_DEBUG forced false; a
-#      warning, not a change, for APP_ENV=local or an http APP_URL), swap in the
+#      warning, not a change, for APP_ENV=local, an http APP_URL, or a setting
+#      this host cannot run: a non-sqlite DB_CONNECTION, BROADCAST_CONNECTION
+#      reverb/pusher/ably, QUEUE_CONNECTION sync/redis, SESSION_DRIVER or
+#      CACHE_STORE redis), swap in the
 #      new public/build, keep the docroot's build/ in step, migrations, caches,
 #      back up.
 #   4. Installs the cron lines (2: schedule:run, queue:work) through the shared crontab block, with its
@@ -177,6 +180,39 @@ jobs:
           ls -1t "$HOME"/dot-forms-*.tgz | tail -n +4 | xargs -r rm -f
           echo "== Rollback copy: $BACKUP ($(du -h "$BACKUP" | cut -f1))  [restore: stop writes, tar xzf it over $DEPLOY_PATH]"
 
+          # ---- application-folder guard
+          # The application folder (the one that holds artisan, .env, database/, storage/, vendor/) sits inside the docroot,
+          # beside public/. Where it has no `.htaccess` that denies access, the web server serves it: on 2026-10-20 four
+          # platforms answered 200 for database/database.sqlite, storage/logs/laravel.log, composer files and
+          # vendor/autoload.php. This writes the deny file the same way the manual app-folder-guard.yml workflow does.
+          # It runs BEFORE any `artisan down` and can never fail the deploy: the body is a subshell with `set +e`, and
+          # every outcome (including a failed write) is one line in the log. This repo TRACKS a root .htaccess, so
+          # `git reset --hard` below puts the repository's copy back: the guard is written again right after the code step.
+          guard_app_folder() (
+            set +e
+            F="$DEPLOY_PATH/.htaccess"
+            if [ ! -f "$DEPLOY_PATH/artisan" ]; then echo "== App-folder guard: skipped (no artisan in $DEPLOY_PATH)"; exit 0; fi
+            # An app folder directly in the home folder may itself BE the docroot: denying it would take the site down.
+            if [ "$(dirname "$DEPLOY_PATH")" = "$HOME" ]; then echo "== App-folder guard: skipped ($DEPLOY_PATH is directly in the home folder, it may be the docroot)"; exit 0; fi
+            if [ -f "$F" ] && grep -q 'Require all denied' "$F"; then
+              echo "== App-folder guard: already present"
+            elif [ -f "$F" ]; then
+              if cp "$F" "$F.before-guard" && printf '\n# Dot: the application folder is never served.\nRequire all denied\n' >> "$F"; then
+                echo "== App-folder guard: appended to the existing .htaccess (original kept as .htaccess.before-guard)"
+              else
+                echo "::warning::App-folder guard: could not append to $F (deploy continues)"
+              fi
+            else
+              if printf '# Dot: the application folder is never served.\nRequire all denied\n' > "$F"; then
+                echo "== App-folder guard: written (new .htaccess)"
+              else
+                echo "::warning::App-folder guard: could not write $F (deploy continues)"
+              fi
+            fi
+            exit 0
+          )
+          guard_app_folder || true
+
           # A failure leaves the site exactly as it is -- DOWN if maintenance
           # mode had started -- and says which, with the way back.
           trap 'if [ -f storage/framework/down ]; then echo "::error::The deploy failed AFTER maintenance mode started. The site was left DOWN on purpose. Rollback copy: $BACKUP. Inspect with server-logs.yml and run again, or restore the copy and run: php artisan up"; else echo "::error::The deploy failed BEFORE maintenance mode started; the site is still serving the previous release. Rollback copy: $BACKUP."; fi' ERR
@@ -221,6 +257,9 @@ jobs:
             git checkout -q -B main origin/main
           fi
           echo "== Code: $(git rev-parse --short HEAD)"
+          # The repository tracks a root .htaccess, so the reset above replaced the guard with the repository's copy:
+          # put it back now (tolerant, see guard_app_folder above).
+          guard_app_folder || true
 
           # ---- files on the host that main does not have
           # Untracked files survive a takeover on purpose (.env, uploads, local
@@ -263,6 +302,22 @@ jobs:
           # Not changed here (it can alter behaviour), but never silent.
           if grep -q '^APP_ENV=local' .env; then echo "::warning::APP_ENV=local in the production .env; set it to production."; fi
           if grep -qE '^APP_URL=http://' .env; then echo "::warning::APP_URL is http://, not https://; set it to the https address."; fi
+          # This host is cPanel shared hosting: one SQLite file, no Redis, no
+          # websocket server, and the only worker is the cron `queue:work`. A
+          # .env that selects anything else cannot work here, so say so. Warn
+          # only, never change: a wrong guess about the host would be worse.
+          # An unset key falls back to the config default, which is the right one.
+          env_value() { { grep -E "^$1=" .env || true; } | tail -n 1 | cut -d= -f2- | sed -e 's/[[:space:]]*#.*$//' -e 's/[[:space:]]*$//' -e "s/^['\"]//" -e "s/['\"]\$//" | tr -d '\r' | tr '[:upper:]' '[:lower:]'; }
+          INV_DB="$(env_value DB_CONNECTION)"
+          INV_BROADCAST="$(env_value BROADCAST_CONNECTION)"
+          INV_QUEUE="$(env_value QUEUE_CONNECTION)"
+          INV_SESSION="$(env_value SESSION_DRIVER)"
+          INV_CACHE="$(env_value CACHE_STORE)"
+          if [ -n "$INV_DB" ] && [ "$INV_DB" != "sqlite" ]; then echo "::warning::DB_CONNECTION=$INV_DB in the production .env; this host runs on SQLite (DB_CONNECTION=sqlite) and has no other database to talk to."; fi
+          case "$INV_BROADCAST" in reverb|pusher|ably) echo "::warning::BROADCAST_CONNECTION=$INV_BROADCAST in the production .env; this host has no websocket server. Set BROADCAST_CONNECTION=null."; esac
+          case "$INV_QUEUE" in sync) echo "::warning::QUEUE_CONNECTION=sync in the production .env; jobs would run inside the web request. Set QUEUE_CONNECTION=database (cron drains it).";; redis) echo "::warning::QUEUE_CONNECTION=redis in the production .env; this host has no Redis. Set QUEUE_CONNECTION=database."; esac
+          if [ "$INV_SESSION" = "redis" ]; then echo "::warning::SESSION_DRIVER=redis in the production .env; this host has no Redis. Set SESSION_DRIVER=database."; fi
+          if [ "$INV_CACHE" = "redis" ]; then echo "::warning::CACHE_STORE=redis in the production .env; this host has no Redis. Set CACHE_STORE=database."; fi
 
           # ---- frontend: swap the staged build in, keep the docroot copy in step
           # public/build is gitignored, so git never refreshes it. The docroot
@@ -273,6 +328,11 @@ jobs:
           [ -d public/build ] && mv public/build public/build.old
           mv public/build.incoming public/build
           rm -rf public/build.old
+          # public/hot is written by `npm run dev` and makes @vite() point every
+          # page at a dev server (http://[::1]:5173) that no visitor can reach.
+          # It is gitignored, so git never removes it, and a hand-uploaded tree
+          # can carry one onto the host. Production never runs a dev server.
+          if [ -e public/hot ]; then rm -f public/hot; echo "== removed a stray public/hot (the Vite dev-server marker)"; fi
           LINK="$DOCROOT/build"
           if [ -L "$LINK" ]; then
             echo "== docroot build/ is a symlink; nothing to copy"
@@ -308,6 +368,40 @@ jobs:
           $PHP artisan route:cache
           $PHP artisan view:cache
           $PHP artisan event:cache
+
+          # ---- public/storage -> ../storage/app/public
+          # User uploads are served from public/storage. A symlink left over from an earlier location (an absolute path
+          # that no longer exists) answers 404 for every upload, and it breaks outright once the document root becomes
+          # <app>/public. This points the link at the relative target `artisan storage:link` creates, repairs a broken or
+          # misdirected link, and leaves a correct one alone. It NEVER removes a real directory or file called storage
+          # (that is warned about and left as it is) and can never fail the deploy: the body is a subshell with `set +e`.
+          ensure_storage_link() (
+            set +e
+            TARGET="../storage/app/public"
+            LINK="public/storage"
+            if ! mkdir -p storage/app/public 2>/dev/null; then echo "::warning::storage link: could not create storage/app/public (deploy continues)"; exit 0; fi
+            if [ ! -d public ]; then echo "== storage link: skipped (no public/ folder)"; exit 0; fi
+            if [ -L "$LINK" ]; then
+              CUR="$(readlink "$LINK")"
+              if [ -d "$LINK" ] && [ "$(cd -P "$LINK" 2>/dev/null && pwd -P)" = "$(cd -P storage/app/public && pwd -P)" ]; then
+                echo "== storage link: ok ($LINK -> $CUR)"
+              elif ln -sfn "$TARGET" "$LINK"; then
+                echo "== storage link: repaired ($LINK pointed at $CUR, now $TARGET)"
+              else
+                echo "::warning::storage link: could not repair $LINK (it points at $CUR); uploads may not be served (deploy continues)"
+              fi
+            elif [ -d "$LINK" ]; then
+              echo "::warning::storage link: skipped (real directory) -- $LINK is a real directory, not a symlink; left as it is. Move its files into storage/app/public and remove it by hand to serve uploads from there."
+            elif [ -e "$LINK" ]; then
+              echo "::warning::storage link: skipped (real file) -- $LINK is a file, not a symlink; left as it is."
+            elif ln -s "$TARGET" "$LINK"; then
+              echo "== storage link: created ($LINK -> $TARGET)"
+            else
+              echo "::warning::storage link: could not create $LINK (deploy continues)"
+            fi
+            exit 0
+          )
+          ensure_storage_link || true
 
           $PHP artisan up
           trap - ERR
@@ -355,19 +449,37 @@ jobs:
           if ! read_crontab "$OLD"; then
             echo "::error::crontab -l answered empty or failed five times ($(cat "$ERR")). Refusing to write a crontab I could not read."; exit 1
           fi
+          KEY="${MARK#\# dot-}"
+          EXPECT_MINE=2
           OTHERS=$(grep -v "$MARK" "$OLD" | grep -c . || true)
           {
             grep -v "$MARK" "$OLD" || true
-            echo "* * * * * cd $DEPLOY_PATH && $PHP_BIN artisan schedule:run > storage/logs/cron-scheduler.log 2>&1 $MARK"
-            echo "* * * * * cd $DEPLOY_PATH && $PHP_BIN artisan queue:work --queue=notifications,ai,default --stop-when-empty --tries=3 --timeout=90 --max-time=50 > storage/logs/cron-queue.log 2>&1 $MARK"
+            echo "* * * * * cd $DEPLOY_PATH && exec $PHP_BIN artisan schedule:run > storage/logs/cron-scheduler.log 2>&1 $MARK"
+            echo "* * * * * cd $DEPLOY_PATH && exec $PHP_BIN artisan queue:work --queue=notifications,ai,default --stop-when-empty --tries=3 --timeout=90 --max-time=50 > storage/logs/cron-queue.log 2>&1 $MARK"
           } > "$NEW"
+          # Runner mode (InfoDot docs/programme R-1): when the account runs the bounded-concurrency cron runner
+          # (InfoDot: Cron Runner workflow, "install"), this app's commands go to ~/.dot-cron.d/$KEY.cron and the
+          # runner starts them, at most 4 at a time, away from second 0. Its own crontab lines are removed (a migration
+          # on deploy). Without the runner the lines above are installed as before.
+          if [ -x "$HOME/bin/dot-cron-runner" ] && grep -q '# dot-cron-runner' "$OLD"; then
+            CMDS="$(grep -F -- "$MARK" "$NEW" | sed -E 's/^[^ ]+ [^ ]+ [^ ]+ [^ ]+ [^ ]+ //; s/ *# dot-[a-z0-9-]*$//' || true)"
+            mkdir -p "$HOME/.dot-cron.d"
+            if [ -n "$CMDS" ]; then
+              printf '%s\n' "$CMDS" > "$HOME/.dot-cron.d/$KEY.cron.tmp" && mv "$HOME/.dot-cron.d/$KEY.cron.tmp" "$HOME/.dot-cron.d/$KEY.cron"
+            else
+              rm -f "$HOME/.dot-cron.d/$KEY.cron"
+            fi
+            grep -v -F -- "$MARK" "$NEW" > "$NEW.t" || true; mv "$NEW.t" "$NEW"
+            EXPECT_MINE=0
+            echo "== runner mode: $(printf '%s' "$CMDS" | grep -c . || true) command(s) written to ~/.dot-cron.d/$KEY.cron, none left in the crontab"
+          fi
           crontab "$NEW"
           read_crontab "$CHK" || : > "$CHK"
           AFTER=$(grep -v "$MARK" "$CHK" | grep -c . || true)
           MINE=$(grep -c "$MARK" "$CHK" || true)
-          if [ "$AFTER" != "$OTHERS" ] || [ "$MINE" != "2" ]; then
+          if [ "$AFTER" != "$OTHERS" ] || [ "$MINE" != "$EXPECT_MINE" ]; then
             crontab "$OLD"
-            echo "::error::crontab verification failed (other lines before=$OTHERS after=$AFTER, mine=$MINE); the previous crontab was restored."; exit 1
+            echo "::error::crontab verification failed (other lines before=$OTHERS after=$AFTER, mine=$MINE, expected=$EXPECT_MINE); the previous crontab was restored."; exit 1
           fi
           rm -f "$OLD" "$NEW" "$CHK" "$ERR"; flock -u 9
           echo "== crontab: $MINE line(s) for $MARK installed, $OTHERS other line(s) preserved"
@@ -381,6 +493,15 @@ jobs:
           for PAGE in "/" "/login" "/up"; do
             CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL$PAGE" || true)
             if [ "$CODE" = "200" ]; then echo "200 $SITE_URL$PAGE"; else echo "::error::$SITE_URL$PAGE answered ${CODE:-no response} (expected 200)"; FAILED=1; fi
+          done
+          # No page may point at a Vite dev server: that is what a stray public/hot
+          # file does, and the site then renders with no styles at all.
+          for PAGE in "/" "/login"; do
+            if curl -s --max-time 30 "$SITE_URL$PAGE" | grep -qE ':5173|@vite/client'; then
+              echo "::error::$SITE_URL$PAGE references the Vite dev server (a public/hot file on the host): the page has no usable CSS or JS."; FAILED=1
+            else
+              echo "No Vite dev-server references on $SITE_URL$PAGE"
+            fi
           done
           for ASSET in $(python3 -c "import json; m=json.load(open('public/build/manifest.json')); print(' '.join(sorted({v['file'] for v in m.values() if v.get('isEntry')} | {f for v in m.values() if v.get('isEntry') for f in v.get('css', [])})))"); do
             CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL/build/$ASSET" || true)
@@ -397,3 +518,22 @@ jobs:
           rm -rf "$WORK"
           [ "$FAILED" -eq 0 ] || { echo "::error::Smoke check failed: the deploy is NOT healthy."; exit 1; }
           echo "== Smoke check passed."
+
+      # The application folder must not answer over HTTP. Runs after `php artisan up` and the smoke check, so it can
+      # only turn a finished run red, never leave the site down. Status codes only: nothing is read or printed.
+      # 200 is a leak; 301/302/403/404 are fine (a redirect is the app routing an unknown path to its login).
+      - name: Probe the application folder from outside
+        run: |
+          set -uo pipefail
+          KEY="$(basename "$APP_PATH")"
+          EXPOSED=""
+          for P in .env .env.bak-secrets artisan composer.json composer.lock database/database.sqlite storage/logs/laravel.log vendor/autoload.php phpunit.xml; do
+            CODE=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$SITE_URL/$KEY/$P" || true)
+            echo "$KEY/$P -> ${CODE:-000}"
+            if [ "$CODE" = "200" ]; then EXPOSED="$EXPOSED $P"; fi
+          done
+          if [ -n "$EXPOSED" ]; then
+            echo "::error::The application folder is readable over HTTP at $SITE_URL/$KEY/ for:$EXPOSED. Put 'Require all denied' in its .htaccess (InfoDot: App Folder Guard workflow) and redeploy."
+            exit 1
+          fi
+          echo "== Application folder not readable over HTTP (9 paths, none answered 200)."

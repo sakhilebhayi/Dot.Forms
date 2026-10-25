@@ -13,6 +13,13 @@ use Laravel\Jetstream\Team as JetstreamTeam;
 
 class Team extends JetstreamTeam
 {
+    protected static function booted(): void
+    {
+        // The forms table cascades on delete, which fires no Form events, so
+        // drop their cached public copies while the rows can still be found.
+        static::deleting(fn (Team $model) => Form::forgetPublicCacheFor('team_id', $model->getKey()));
+    }
+
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
