@@ -61,7 +61,7 @@
 
                 @foreach ($orderedFields as $field)
                     <div style="display: flex; flex-direction: column; gap: 8px;" x-show="!conversational || step === {{ $loop->index }}" x-cloak>
-                        <label style="font-size: 14px; font-weight: 600; color: var(--ink);">
+                        <label @if (! in_array($field->type, ['radio', 'checkbox'], true)) for="field-{{ $field->id }}" @endif style="font-size: 14px; font-weight: 600; color: var(--ink);">
                             {{ $field->label }}
                             @if (in_array('required', $field->validation_rules ?? [], true))
                                 <span style="color: var(--red);">*</span>
@@ -69,12 +69,12 @@
                         </label>
 
                         @if ($field->type === 'textarea')
-                            <textarea wire:model="answers.{{ $field->id }}" rows="4" placeholder="{{ $field->placeholder }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+                            <textarea id="field-{{ $field->id }}" wire:model="answers.{{ $field->id }}" rows="4" placeholder="{{ $field->placeholder }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
                         @elseif ($field->type === 'select')
                             {{-- .live: other fields' visibility can depend on this
                                  answer, so a change here has to round-trip and
                                  re-evaluate which fields show. --}}
-                            <select wire:model.live="answers.{{ $field->id }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;">
+                            <select id="field-{{ $field->id }}" wire:model.live="answers.{{ $field->id }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;">
                                 <option value="">Select an option</option>
                                 @foreach (($field->options['choices'] ?? []) as $option)
                                     <option value="{{ $option }}">{{ $option }}</option>
@@ -95,12 +95,12 @@
                                 <span>I confirm</span>
                             </label>
                         @elseif ($field->type === 'file')
-                            <input type="file" wire:model="uploads.{{ $field->id }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px;" />
+                            <input id="field-{{ $field->id }}" type="file" wire:model="uploads.{{ $field->id }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px;" />
                         @else
                             {{-- .blur rather than .live: a text-type trigger still
                                  re-evaluates visibility, but without a round-trip
                                  on every keystroke. --}}
-                            <input type="{{ in_array($field->type, ['text', 'email', 'number', 'date'], true) ? $field->type : 'text' }}" wire:model.blur="answers.{{ $field->id }}" placeholder="{{ $field->placeholder }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;" />
+                            <input id="field-{{ $field->id }}" type="{{ in_array($field->type, ['text', 'email', 'number', 'date'], true) ? $field->type : 'text' }}" wire:model.blur="answers.{{ $field->id }}" placeholder="{{ $field->placeholder }}" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;" />
                         @endif
 
                         @if (! empty($field->options['helper_text']))

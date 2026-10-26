@@ -28,14 +28,14 @@
     <!-- Search and Filter Bar -->
     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
         <div>
-            <input
+            <input aria-label="Search forms"
                 type="text"
                 wire:model.live.debounce.300ms="search"
                 placeholder="Search forms..."
                 style="width: 100%; height: 44px; background: white; border: 1.5px solid #E5E7EB; border-radius: 10px; padding: 0 14px; font-size: 14px; color: #1A1A1A; outline: none; transition: border-color .15s; font-family: 'Inter', sans-serif;"
                 onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='#E5E7EB'">
         </div>
-        <select wire:model.live="status" style="width: 100%; height: 44px; background: white; border: 1.5px solid #E5E7EB; border-radius: 10px; padding: 0 14px; font-size: 14px; color: #1A1A1A; outline: none; transition: border-color .15s; font-family: 'Inter', sans-serif; cursor: pointer;" onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='#E5E7EB'">
+        <select aria-label="Filter by status" wire:model.live="status" style="width: 100%; height: 44px; background: white; border: 1.5px solid #E5E7EB; border-radius: 10px; padding: 0 14px; font-size: 14px; color: #1A1A1A; outline: none; transition: border-color .15s; font-family: 'Inter', sans-serif; cursor: pointer;" onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='#E5E7EB'">
             <option value="all">All forms</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>

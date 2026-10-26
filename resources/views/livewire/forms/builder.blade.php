@@ -84,16 +84,16 @@
                 <!-- Form Metadata -->
                 <div style="background: white; border: 1px solid #E5E5E5; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
                     <div>
-                        <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px;">
+                        <label for="fb-form-title" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px;">
                             Form Title
                         </label>
-                        <input type="text" wire:model.live="title" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; transition: all 0.2s;" />
+                        <input id="fb-form-title" type="text" wire:model.live="title" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; transition: all 0.2s;" />
                     </div>
                     <div>
-                        <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px;">
+                        <label for="fb-description" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px;">
                             Description
                         </label>
-                        <textarea wire:model.live="description" rows="3" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; resize: vertical; transition: all 0.2s;"></textarea>
+                        <textarea id="fb-description" wire:model.live="description" rows="3" style="width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; resize: vertical; transition: all 0.2s;"></textarea>
                     </div>
                 </div>
 
@@ -134,16 +134,16 @@
                                 <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                         <div>
-                                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                            <label for="fb-label-{{ $index }}" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                                 Label
                                             </label>
-                                            <input type="text" wire:model.live="fields.{{ $index }}.label" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                                            <input id="fb-label-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.label" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                                         </div>
                                         <div>
-                                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                            <label for="fb-type-{{ $index }}" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                                 Type
                                             </label>
-                                            <select wire:model.live="fields.{{ $index }}.type" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;">
+                                            <select id="fb-type-{{ $index }}" wire:model.live="fields.{{ $index }}.type" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;">
                                                 @foreach ($fieldTypes as $type)
                                                     <option value="{{ $type }}">{{ \Illuminate\Support\Str::headline($type) }}</option>
                                                 @endforeach
@@ -152,18 +152,18 @@
                                     </div>
 
                                     <div>
-                                        <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                        <label for="fb-placeholder-{{ $index }}" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                             Placeholder
                                         </label>
-                                        <input type="text" wire:model.live="fields.{{ $index }}.placeholder" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                                        <input id="fb-placeholder-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.placeholder" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                                     </div>
 
                                     @if (in_array($field['type'], ['select', 'radio', 'checkbox'], true))
                                         <div>
-                                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                            <label for="fb-options-comma-separated-{{ $index }}" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                                 Options (comma-separated)
                                             </label>
-                                            <input type="text" wire:model.live="fields.{{ $index }}.options" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                                            <input id="fb-options-comma-separated-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.options" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                                         </div>
                                     @endif
 
@@ -208,17 +208,17 @@
 
                     <div style="display: flex; flex-direction: column; gap: 14px;">
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-confirmation-message" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Confirmation Message
                             </label>
-                            <textarea wire:model.live="settings.confirmation_message" rows="2" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+                            <textarea id="fb-confirmation-message" wire:model.live="settings.confirmation_message" rows="2" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
                         </div>
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-theme" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Theme
                             </label>
-                            <select wire:model.live="settings.theme" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;">
+                            <select id="fb-theme" wire:model.live="settings.theme" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;">
                                 <option value="light">☀️ Light</option>
                                 <option value="dark">🌙 Dark</option>
                                 <option value="brand">🎨 Brand</option>
@@ -226,17 +226,17 @@
                         </div>
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-brand-color" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Brand Color
                             </label>
-                            <input type="text" wire:model.live="settings.brand_color" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" placeholder="#4f46e5" />
+                            <input id="fb-brand-color" type="text" wire:model.live="settings.brand_color" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" placeholder="#4f46e5" />
                         </div>
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-logo" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Logo
                             </label>
-                            <input type="file" wire:model="logoUpload" accept="image/*" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px;" />
+                            <input id="fb-logo" type="file" wire:model="logoUpload" accept="image/*" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px;" />
                             @if ($logoUrl)
                                 <img src="{{ $logoUrl }}" alt="Form logo" style="margin-top: 8px; height: 40px; width: auto; border-radius: 6px;">
                             @endif
@@ -245,24 +245,24 @@
                         <hr style="border: none; border-top: 1px solid #E5E5E5; margin: 0;">
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-response-limit" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Response Limit
                             </label>
-                            <input type="number" min="1" wire:model.live="settings.limit_responses" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                            <input id="fb-response-limit" type="number" min="1" wire:model.live="settings.limit_responses" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                         </div>
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-opens-at" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Opens At
                             </label>
-                            <input type="datetime-local" wire:model.live="settings.open_at" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                            <input id="fb-opens-at" type="datetime-local" wire:model.live="settings.open_at" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                         </div>
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-closes-at" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Closes At
                             </label>
-                            <input type="datetime-local" wire:model.live="settings.close_at" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                            <input id="fb-closes-at" type="datetime-local" wire:model.live="settings.close_at" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                         </div>
 
                         <hr style="border: none; border-top: 1px solid #E5E5E5; margin: 0;">
@@ -274,10 +274,10 @@
 
                         @if ($settings['consent_required'] ?? false)
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                <label for="fb-consent-label" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                     Consent Label
                                 </label>
-                                <input type="text" wire:model.live="settings.consent_label" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                                <input id="fb-consent-label" type="text" wire:model.live="settings.consent_label" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                             </div>
                         @endif
 
@@ -290,10 +290,10 @@
 
                         @if ($settings['quiz_enabled'] ?? false)
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                <label for="fb-answer-key-json" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                     Answer Key (JSON)
                                 </label>
-                                <textarea wire:model.live="settings.quiz_answer_key_json" rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px; font-family: 'monospace'; resize: vertical;" placeholder='{&quot;1&quot;:&quot;Option A&quot;,&quot;2&quot;:&quot;42&quot;}'></textarea>
+                                <textarea id="fb-answer-key-json" wire:model.live="settings.quiz_answer_key_json" rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px; font-family: 'monospace'; resize: vertical;" placeholder='{&quot;1&quot;:&quot;Option A&quot;,&quot;2&quot;:&quot;42&quot;}'></textarea>
                             </div>
                         @endif
 
@@ -305,10 +305,10 @@
                         <hr style="border: none; border-top: 1px solid #E5E5E5; margin: 0;">
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-crm-provider" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 CRM Provider
                             </label>
-                            <select wire:model.live="settings.crm_provider" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;">
+                            <select id="fb-crm-provider" wire:model.live="settings.crm_provider" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;">
                                 <option value="none">None</option>
                                 <option value="hubspot">HubSpot</option>
                                 <option value="pipedrive">Pipedrive</option>
@@ -320,10 +320,10 @@
 
                         @if (($settings['crm_provider'] ?? 'none') !== 'none')
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                <label for="fb-crm-webhook-url" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                     CRM Webhook URL
                                 </label>
-                                <input type="url" wire:model.live="settings.crm_webhook_url" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                                <input id="fb-crm-webhook-url" type="url" wire:model.live="settings.crm_webhook_url" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
 
                                 @php $integration = $this->integrations->get('crm'); @endphp
                                 @if ($integration)
@@ -336,7 +336,7 @@
                                             <span style="color: #d97706; font-weight: 600;">Pending approval</span>
                                             @if ($rejectingIntegrationType === 'crm')
                                                 <div style="display: flex; gap: 6px; margin-top: 4px;">
-                                                    <input type="text" wire:model="integrationRejectReason" placeholder="Reason for rejecting" style="flex: 1; padding: 6px 8px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px;" />
+                                                    <input aria-label="Reason for rejecting" type="text" wire:model="integrationRejectReason" placeholder="Reason for rejecting" style="flex: 1; padding: 6px 8px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px;" />
                                                     <button type="button" wire:click="confirmRejectIntegration" style="padding: 6px 10px; background: #dc2626; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">Confirm Reject</button>
                                                     <button type="button" wire:click="cancelRejectIntegration" style="padding: 6px 10px; background: #E5E5E5; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">Cancel</button>
                                                 </div>
@@ -355,10 +355,10 @@
                         @endif
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-data-retention-days" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Data Retention (days)
                             </label>
-                            <input type="number" min="1" wire:model.live="settings.retention_days" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
+                            <input id="fb-data-retention-days" type="number" min="1" wire:model.live="settings.retention_days" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" />
                         </div>
 
                         <hr style="border: none; border-top: 1px solid #E5E5E5; margin: 0;">
@@ -374,10 +374,10 @@
 
                         @foreach ($integrationSlots as $type => $slot)
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                                <label for="fb-{{ $slot['field'] }}" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                     {{ $slot['label'] }}
                                 </label>
-                                <input type="url" wire:model.live="settings.{{ $slot['field'] }}" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" placeholder="{{ $slot['placeholder'] }}" />
+                                <input id="fb-{{ $slot['field'] }}" type="url" wire:model.live="settings.{{ $slot['field'] }}" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif;" placeholder="{{ $slot['placeholder'] }}" />
 
                                 @php $integration = $this->integrations->get($type); @endphp
                                 @if ($integration)
@@ -390,7 +390,7 @@
                                             <span style="color: #d97706; font-weight: 600;">Pending approval</span>
                                             @if ($rejectingIntegrationType === $type)
                                                 <div style="display: flex; gap: 6px; margin-top: 4px;">
-                                                    <input type="text" wire:model="integrationRejectReason" placeholder="Reason for rejecting" style="flex: 1; padding: 6px 8px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px;" />
+                                                    <input aria-label="Reason for rejecting" type="text" wire:model="integrationRejectReason" placeholder="Reason for rejecting" style="flex: 1; padding: 6px 8px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px;" />
                                                     <button type="button" wire:click="confirmRejectIntegration" style="padding: 6px 10px; background: #dc2626; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">Confirm Reject</button>
                                                     <button type="button" wire:click="cancelRejectIntegration" style="padding: 6px 10px; background: #E5E5E5; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">Cancel</button>
                                                 </div>
@@ -411,10 +411,10 @@
                         <hr style="border: none; border-top: 1px solid #E5E5E5; margin: 0;">
 
                         <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
+                            <label for="fb-custom-css" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px;">
                                 Custom CSS
                             </label>
-                            <textarea wire:model.live="settings.custom_css" rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px; font-family: 'monospace'; resize: vertical;" placeholder=".form-card { border-radius: 12px; }"></textarea>
+                            <textarea id="fb-custom-css" wire:model.live="settings.custom_css" rows="3" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 6px; font-size: 12px; font-family: 'monospace'; resize: vertical;" placeholder=".form-card { border-radius: 12px; }"></textarea>
                         </div>
                     </div>
                 </div>
@@ -432,10 +432,10 @@
 
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                     <div>
-                        <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px;">
+                        <label for="fb-helper-text-{{ $editingFieldIndex }}" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px;">
                             Helper Text
                         </label>
-                        <textarea wire:model.live="fields.{{ $editingFieldIndex }}.helper_text" rows="2" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+                        <textarea id="fb-helper-text-{{ $editingFieldIndex }}" wire:model.live="fields.{{ $editingFieldIndex }}.helper_text" rows="2" style="width: 100%; padding: 10px 12px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
                     </div>
 
                     <div>
@@ -450,7 +450,7 @@
                         @endphp
 
                         <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <select wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.trigger_field_key" style="width: 100%; padding: 9px 10px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;">
+                            <select aria-label="Show this field only when another field's answer matches" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.trigger_field_key" style="width: 100%; padding: 9px 10px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;">
                                 <option value="">Always show</option>
                                 @foreach ($otherFields as $other)
                                     <option value="{{ $other['key'] }}">{{ $other['label'] ?: 'Untitled field' }}</option>
@@ -459,12 +459,12 @@
 
                             @if (! empty($fields[$editingFieldIndex]['visibility_rule']['trigger_field_key']))
                                 <div style="display: flex; gap: 8px;">
-                                    <select wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.operator" style="flex: 1; padding: 9px 10px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;">
+                                    <select aria-label="How the answer is compared" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.operator" style="flex: 1; padding: 9px 10px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;">
                                         <option value="equals">equals</option>
                                         <option value="not_equals">does not equal</option>
                                         <option value="contains">contains</option>
                                     </select>
-                                    <input type="text" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.value" placeholder="value" style="flex: 1; padding: 9px 10px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;">
+                                    <input aria-label="Value the answer is compared with" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.value" placeholder="value" style="flex: 1; padding: 9px 10px; border: 1px solid #E5E5E5; border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;">
                                 </div>
                                 <p style="font-size: 11px; color: var(--muted); margin: 0;">
                                     This field is hidden from respondents until the answer above matches -- and its answer is never recorded while hidden.
