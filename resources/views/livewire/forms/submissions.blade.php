@@ -22,8 +22,8 @@
 
     <div class="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
         <div>
-            <label class="text-sm font-medium text-gray-700">Search Submissions</label>
-            <input type="text" wire:model.live.debounce.300ms="search" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search inside submission data">
+            <label for="sub-search-submissions" class="text-sm font-medium text-gray-700">Search Submissions</label>
+            <input id="sub-search-submissions" type="text" wire:model.live.debounce.300ms="search" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search inside submission data">
         </div>
 
         <div>
@@ -44,7 +44,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                        <input type="checkbox" x-data @change="$wire.set('selectedSubmissionIds', $event.target.checked ? @js($submissions->pluck('id')->all()) : [])" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                        <input aria-label="Select all submissions" type="checkbox" x-data @change="$wire.set('selectedSubmissionIds', $event.target.checked ? @js($submissions->pluck('id')->all()) : [])" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Submitted</th>
                     @foreach ($form->fields->whereIn('id', $selectedFieldIds) as $field)
@@ -57,7 +57,7 @@
                 @forelse ($submissions as $submission)
                     <tr>
                         <td class="px-4 py-3 text-sm">
-                            <input type="checkbox" wire:model.live="selectedSubmissionIds" value="{{ $submission->id }}" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                            <input aria-label="Select submission #{{ $submission->id }}" type="checkbox" wire:model.live="selectedSubmissionIds" value="{{ $submission->id }}" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ optional($submission->submitted_at)->diffForHumans() }}</td>
                         @foreach ($form->fields->whereIn('id', $selectedFieldIds) as $field)
