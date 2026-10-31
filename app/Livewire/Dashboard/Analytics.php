@@ -14,7 +14,12 @@ class Analytics extends Component
         'total_submissions' => 0,
         'completion_rate' => 0,
         'avg_completion_seconds' => 0,
+        'total_views' => 0,
+        'total_starts' => 0,
     ];
+
+    /** R-30 funnel: per-form views → starts → copies. Starts count from deploy day on. */
+    public array $funnelRows = [];
 
     public array $submissionLabels = [];
 
@@ -51,7 +56,27 @@ class Analytics extends Component
             'total_submissions' => $totalSubmissions,
             'completion_rate' => $completionRate,
             'avg_completion_seconds' => $avgCompletionSeconds,
+            'total_views' => $totalViews,
+            'total_starts' => (int) $forms->sum('starts_count'),
         ];
+
+        // The funnel, per form: views → starts (first answer typed) → copies lodged.
+        // Starts only exist from the day the counter shipped, so a long-lived form can
+        // honestly show more copies than starts; the view marks those rows.
+        $this->funnelRows = $forms
+            ->sortByDesc('views_count')
+            ->take(12)
+            ->map(fn ($form) => [
+                'title' => $form->title,
+                'views' => (int) $form->views_count,
+                'starts' => (int) $form->starts_count,
+                'submissions' => (int) $form->submissions_count,
+                'finish_rate' => $form->starts_count > 0
+                    ? min(100, round($form->submissions_count / $form->starts_count * 100))
+                    : null,
+            ])
+            ->values()
+            ->all();
 
         $byDay = collect(range(6, 0))
             ->mapWithKeys(function ($daysAgo) use ($forms) {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\GuardianHealthController;
 use App\Http\Controllers\SchedulerProbeController;
+use App\Http\Middleware\AllowFormEmbedding;
 use App\Http\Middleware\AuthenticateGuardian;
 use App\Livewire\Dashboard\Analytics as DashboardAnalytics;
 use App\Livewire\Forms\AiAnalytics;
@@ -91,7 +92,9 @@ Route::middleware([
         ->name('teams.forms.ai-analytics');
 });
 
-Route::get('/forms/{slug}', PublicView::class)->name('forms.public');
+Route::get('/forms/{slug}', PublicView::class)
+    ->middleware(AllowFormEmbedding::class)
+    ->name('forms.public');
 
 // Public liveness probe for the cron scheduler and queue worker, watched from GitHub every
 // 15 minutes by .github/workflows/scheduler-watchdog.yml.

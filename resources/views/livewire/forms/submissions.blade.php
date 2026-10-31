@@ -53,6 +53,7 @@
                     <th>Submitted</th>
                     <th>Status</th>
                     <th>Held by</th>
+                    <th>Verdict</th>
                     @foreach ($this->collectableFields()->whereIn('id', $selectedFieldIds) as $field)
                         <th>{{ $field->label }}</th>
                     @endforeach
@@ -80,6 +81,15 @@
                                 @endforeach
                             </select>
                         </td>
+                        <td style="white-space:nowrap;">
+                            @if ($submission->decision)
+                                <span class="cb-stamp @if ($submission->decision === 'approved') cb-stamp--ok @endif cb-stamp--landed" title="{{ $submission->decider?->name }} · {{ optional($submission->decided_at)?->format('j M Y, H:i') }}">{{ strtoupper($submission->decision) }}</span>
+                                <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="decide({{ $submission->id }}, null)" aria-label="Lift the stamp on copy {{ $submission->id }}" title="Lift the stamp">↺</button>
+                            @else
+                                <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="color:var(--cb-stamp-green);" wire:click="decide({{ $submission->id }}, 'approved')">Approve</button>
+                                <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="color:var(--cb-stamp-red);" wire:click="decide({{ $submission->id }}, 'rejected')">Reject</button>
+                            @endif
+                        </td>
                         @foreach ($this->collectableFields()->whereIn('id', $selectedFieldIds) as $field)
                             <td style="overflow-wrap:break-word;max-width:260px;">{{ $this->fieldValue($submission, (int) $field->id) }}</td>
                         @endforeach
@@ -104,6 +114,18 @@
         </x-slot>
 
         <x-slot name="content">
+            @if ($activeSubmission)
+                <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap;">
+                    @if ($activeSubmission->decision)
+                        <span class="cb-stamp @if ($activeSubmission->decision === 'approved') cb-stamp--ok @endif cb-stamp--landed">{{ strtoupper($activeSubmission->decision) }}</span>
+                        <span class="cb-dim" style="font-size:12.5px;color:var(--cb-muted);">by {{ $activeSubmission->decider?->name ?? 'someone no longer on the team' }} · {{ optional($activeSubmission->decided_at)?->format('j M Y, H:i') }}</span>
+                        <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="decide({{ $activeSubmission->id }}, null)">Lift the stamp</button>
+                    @else
+                        <button type="button" class="cb-btn cb-btn--sm" style="color:var(--cb-stamp-green);" wire:click="decide({{ $activeSubmission->id }}, 'approved')">Approve this copy</button>
+                        <button type="button" class="cb-btn cb-btn--sm" style="color:var(--cb-stamp-red);" wire:click="decide({{ $activeSubmission->id }}, 'rejected')">Reject this copy</button>
+                    @endif
+                </div>
+            @endif
             <div style="display:grid;gap:12px;">
                 @foreach ($this->activeSubmissionRows() as $label => $value)
                     <div style="border:1px solid var(--cb-boxline);border-radius:2px;padding:10px 12px;position:relative;background:var(--cb-sheet);">

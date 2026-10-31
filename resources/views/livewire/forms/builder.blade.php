@@ -459,6 +459,57 @@
                         <input type="checkbox" wire:model.live="settings.conversational_mode" />
                         <span>One question at a time</span>
                     </label>
+                    <div class="cb-field">
+                        <label class="cb-label" for="fb-access-password">
+                            Password
+                            @if (filled($settings['access_password_hash'] ?? null))<span class="cb-serial" style="font-size:11px;">· SET</span>@endif
+                        </label>
+                        <input id="fb-access-password" type="password" wire:model.live="settings.access_password_new" class="cb-input" autocomplete="new-password"
+                            placeholder="{{ filled($settings['access_password_hash'] ?? null) ? 'Type a new one to replace it' : 'None — anyone with the link' }}" />
+                        @error('settings.access_password_new')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                        @if (filled($settings['access_password_hash'] ?? null))
+                            <label class="cb-check" style="margin-top:8px;">
+                                <input type="checkbox" wire:model.live="settings.access_password_remove" />
+                                <span>Remove the password on save</span>
+                            </label>
+                        @endif
+                        <p class="cb-hint">Respondents enter it before the document opens. Only a hash is stored; set it again if it is forgotten.</p>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>Share</summary>
+                <div>
+                    <div class="cb-field" x-data="{ copied: false }">
+                        <label class="cb-label" for="fb-public-link">Public link</label>
+                        <div style="display:flex;gap:6px;">
+                            <input id="fb-public-link" type="text" readonly value="{{ $publicUrl }}" class="cb-input" style="font-family:var(--cb-mono);font-size:12px;" @focus="$el.select()" />
+                            <button type="button" class="cb-btn cb-btn--sm" style="flex-shrink:0;"
+                                @click="try { navigator.clipboard.writeText(@js($publicUrl)); copied = true; setTimeout(() => copied = false, 1500); } catch (e) {}">
+                                <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied</span>
+                            </button>
+                        </div>
+                        @unless ($form->is_published)
+                            <p class="cb-hint">The link serves nothing until this master is published.</p>
+                        @endunless
+                    </div>
+                    <div class="cb-field">
+                        <span class="cb-label">QR code</span>
+                        <div style="background:#fff;border:1px solid var(--cb-rule);border-radius:3px;display:inline-block;padding:8px;line-height:0;">{!! $qrSvg !!}</div>
+                        <p class="cb-hint">Points at the public link — print it on the notice board or the invoice.</p>
+                    </div>
+                    <label class="cb-check" style="margin:0 0 10px;">
+                        <input type="checkbox" wire:model.live="settings.allow_embed" />
+                        <span>Allow embedding on other sites</span>
+                    </label>
+                    @if ($settings['allow_embed'] ?? false)
+                        <div class="cb-field">
+                            <label class="cb-label" for="fb-embed-code">Embed code</label>
+                            <textarea id="fb-embed-code" readonly rows="3" class="cb-textarea" style="font-family:var(--cb-mono);font-size:11.5px;" @focus="$el.select()"><iframe src="{{ $publicUrl }}" width="100%" height="900" style="border:0;" title="{{ $form->title }}"></iframe></textarea>
+                            <p class="cb-hint">Takes effect after you save. Any site may then frame this form; untick to lock it to Dot.Forms again.</p>
+                        </div>
+                    @endif
                 </div>
             </details>
 
