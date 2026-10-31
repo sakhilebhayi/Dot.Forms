@@ -16,6 +16,7 @@
             <p class="cb-sub">What {{ $team->name ?? 'your company' }} is collecting, and what came in.</p>
         </div>
         @if ($team)
+            <a href="{{ route('teams.forms.templates', $team) }}" class="cb-btn cb-btn--quiet">Templates</a>
             <a href="{{ route('teams.forms.ai-builder', $team) }}" class="cb-btn">Set with AI</a>
             <a href="{{ route('teams.forms', $team) }}" class="cb-btn cb-btn--primary">Open the book</a>
         @endif

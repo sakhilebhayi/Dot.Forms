@@ -4,6 +4,7 @@
             <h1 class="cb-h1">The book</h1>
             <p class="cb-sub">Every form {{ $team->name }} prints, numbered and bound.</p>
         </div>
+        <a href="{{ route('teams.forms.templates', $team) }}" class="cb-btn cb-btn--quiet">Master templates</a>
         <a href="{{ route('teams.forms.ai-builder', $team) }}" class="cb-btn">Set with AI</a>
         <button wire:click="createForm" class="cb-btn cb-btn--primary">Set a new form</button>
     </div>

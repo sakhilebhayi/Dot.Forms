@@ -5,11 +5,14 @@ namespace App\Livewire\Forms;
 use App\Events\FormBuilderUpdated;
 use App\Models\Form;
 use App\Models\FormIntegration;
+use App\Models\FormTemplate;
 use App\Models\FormUserRole;
 use App\Models\FormVersion;
 use App\Models\Team;
 use App\Rules\SafeWebhookUrl;
 use App\Services\Ai\AiFieldSuggestionEngine;
+use App\Services\FormFieldVisibilityEvaluator;
+use App\Services\FormTemplateService;
 use App\Services\PublicFormCache;
 use App\Support\FieldTypes;
 use Illuminate\Support\Collection;
@@ -104,7 +107,36 @@ class Builder extends Component
             'helper_text' => null,
             'conditional_logic' => null,
             'visibility_rule' => ['trigger_field_key' => null, 'operator' => 'equals', 'value' => ''],
+            'visibility' => ['logic' => 'all', 'rules' => []],
         ];
+    }
+
+    /** Logic v2: one more visibility rule on the field being edited. */
+    public function addVisibilityRule(int $index): void
+    {
+        if (! isset($this->fields[$index])) {
+            return;
+        }
+
+        $rules = $this->fields[$index]['visibility']['rules'] ?? [];
+
+        if (count($rules) >= 10) {
+            return;
+        }
+
+        $rules[] = ['trigger_field_key' => null, 'operator' => 'equals', 'value' => ''];
+        $this->fields[$index]['visibility']['rules'] = $rules;
+        $this->fields[$index]['visibility']['logic'] ??= 'all';
+    }
+
+    public function removeVisibilityRule(int $index, int $ruleIndex): void
+    {
+        if (! isset($this->fields[$index]['visibility']['rules'][$ruleIndex])) {
+            return;
+        }
+
+        unset($this->fields[$index]['visibility']['rules'][$ruleIndex]);
+        $this->fields[$index]['visibility']['rules'] = array_values($this->fields[$index]['visibility']['rules']);
     }
 
     /** A copy of the field, directly under it, with its own key (R-30 Phase 2). */
@@ -220,6 +252,29 @@ class Builder extends Component
     public function autoSave(): void
     {
         $this->persist(false);
+    }
+
+    /** The whole master, saved as one of the organisation's own templates (R-30 Phase 3). */
+    public string $templateName = '';
+
+    public function saveAsTemplate(FormTemplateService $templates): void
+    {
+        Gate::authorize('canEditForm', $this->team);
+
+        $this->validate(['templateName' => ['required', 'string', 'max:160']]);
+
+        $this->persist();
+
+        FormTemplate::query()->create([
+            'team_id' => $this->team->id,
+            'name' => $this->templateName,
+            'description' => $this->description ?: null,
+            'payload' => $templates->payloadFromForm($this->form->fresh('fields')),
+            'created_by' => (int) Auth::id(),
+        ]);
+
+        $this->templateName = '';
+        session()->flash('status', 'Saved as a team template — find it under Master templates.');
     }
 
     public function assignMemberRole(): void
@@ -366,6 +421,11 @@ class Builder extends Component
             'fields.*.visibility_rule.trigger_field_key' => ['nullable', 'string'],
             'fields.*.visibility_rule.operator' => ['nullable', 'in:equals,not_equals,contains'],
             'fields.*.visibility_rule.value' => ['nullable', 'string', 'max:255'],
+            'fields.*.visibility.logic' => ['nullable', 'in:all,any'],
+            'fields.*.visibility.rules' => ['nullable', 'array', 'max:10'],
+            'fields.*.visibility.rules.*.trigger_field_key' => ['nullable', 'string'],
+            'fields.*.visibility.rules.*.operator' => ['nullable', 'in:'.implode(',', FormFieldVisibilityEvaluator::OPERATORS)],
+            'fields.*.visibility.rules.*.value' => ['nullable', 'string', 'max:255'],
         ]);
 
         $formData = [
@@ -428,8 +488,35 @@ class Builder extends Component
                 // (also what makes a rule survive a version revert for free:
                 // the snapshot carries the same key-based options blob).
                 $key = (string) ($this->fields[$index]['key'] ?? Str::uuid());
+
+                // Logic v2: keep only complete rules; the legacy single-rule block
+                // mirrors the first one so older readers (and snapshots) stay valid.
+                $v2 = $field['visibility'] ?? null;
+                $v2Rules = [];
+                foreach ((array) ($v2['rules'] ?? []) as $candidate) {
+                    if (is_array($candidate) && ! empty($candidate['trigger_field_key'])) {
+                        $v2Rules[] = [
+                            'trigger_field_key' => (string) $candidate['trigger_field_key'],
+                            'operator' => (string) ($candidate['operator'] ?? 'equals'),
+                            'value' => (string) ($candidate['value'] ?? ''),
+                        ];
+                    }
+                }
+
                 $rule = $field['visibility_rule'] ?? null;
                 $triggerKey = is_array($rule) ? ($rule['trigger_field_key'] ?? null) : null;
+
+                if ($v2Rules !== [] && $triggerKey === null) {
+                    $triggerKey = $v2Rules[0]['trigger_field_key'];
+                    $rule = $v2Rules[0];
+                } elseif ($v2Rules === [] && $triggerKey) {
+                    // A rule set only through the legacy control still lands in v2.
+                    $v2Rules = [[
+                        'trigger_field_key' => (string) $triggerKey,
+                        'operator' => (string) ($rule['operator'] ?? 'equals'),
+                        'value' => (string) ($rule['value'] ?? ''),
+                    ]];
+                }
 
                 $this->form->fields()->create([
                     'type' => $field['type'],
@@ -445,6 +532,10 @@ class Builder extends Component
                             'trigger_field_key' => $triggerKey,
                             'operator' => $rule['operator'] ?? 'equals',
                             'value' => $rule['value'] ?? '',
+                        ] : null,
+                        'visibility' => $v2Rules !== [] ? [
+                            'logic' => (($v2['logic'] ?? 'all') === 'any') ? 'any' : 'all',
+                            'rules' => $v2Rules,
                         ] : null,
                     ],
                     'validation_rules' => $rules,
@@ -611,6 +702,26 @@ class Builder extends Component
                         'operator' => is_array($rule) ? ($rule['operator'] ?? 'equals') : 'equals',
                         'value' => is_array($rule) ? ($rule['value'] ?? '') : '',
                     ],
+                    'visibility' => (function () use ($field, $rule): array {
+                        $stored = $field->options['visibility'] ?? null;
+
+                        if (is_array($stored) && ! empty($stored['rules'])) {
+                            return [
+                                'logic' => (($stored['logic'] ?? 'all') === 'any') ? 'any' : 'all',
+                                'rules' => array_values($stored['rules']),
+                            ];
+                        }
+
+                        if (is_array($rule) && ! empty($rule['trigger_field_key'])) {
+                            return ['logic' => 'all', 'rules' => [[
+                                'trigger_field_key' => $rule['trigger_field_key'],
+                                'operator' => $rule['operator'] ?? 'equals',
+                                'value' => $rule['value'] ?? '',
+                            ]]];
+                        }
+
+                        return ['logic' => 'all', 'rules' => []];
+                    })(),
                 ];
             })
             ->toArray();

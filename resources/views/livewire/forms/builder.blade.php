@@ -279,6 +279,18 @@
                 </div>
             </details>
 
+            <details>
+                <summary>Team template</summary>
+                <div>
+                    <div class="cb-field">
+                        <label class="cb-label" for="fb-template-name">Save this master as a reusable template</label>
+                        <input id="fb-template-name" type="text" wire:model="templateName" class="cb-input" placeholder="e.g. Standard incident report" />
+                        @error('templateName')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                    </div>
+                    <button type="button" class="cb-btn cb-btn--sm" wire:click="saveAsTemplate">Save as a team template</button>
+                </div>
+            </details>
+
             @php $isApprover = $this->form->isApprover(auth()->user()); @endphp
 
             <details>
@@ -387,7 +399,7 @@
                 </div>
 
                 <div class="cb-field">
-                    <span class="cb-label">Show this field only if</span>
+                    <span class="cb-label">Show this field only when</span>
                     @php
                         $otherFields = collect($fields)->filter(
                             fn ($f, $i) => $i !== $editingFieldIndex
@@ -395,25 +407,51 @@
                                 && \App\Support\FieldTypes::collectsAnswer($f['type'] ?? 'text')
                                 && ($f['type'] ?? '') !== 'hidden'
                         )->values();
+                        $editRules = $fields[$editingFieldIndex]['visibility']['rules'] ?? [];
+                        $operatorWords = [
+                            'equals' => 'equals', 'not_equals' => 'does not equal', 'contains' => 'contains',
+                            'empty' => 'is empty', 'not_empty' => 'is answered',
+                            'greater_than' => 'is more than', 'less_than' => 'is less than',
+                        ];
                     @endphp
                     <div style="display:grid;gap:8px;">
-                        <select aria-label="Show this field only when another field's answer matches" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.trigger_field_key" class="cb-select">
-                            <option value="">Always show</option>
-                            @foreach ($otherFields as $other)
-                                <option value="{{ $other['key'] }}">{{ $other['label'] ?: 'Untitled field' }}</option>
-                            @endforeach
-                        </select>
+                        @if (count($editRules) > 1)
+                            <select aria-label="How the rules combine" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.logic" class="cb-select">
+                                <option value="all">every rule below matches</option>
+                                <option value="any">any rule below matches</option>
+                            </select>
+                        @endif
 
-                        @if (! empty($fields[$editingFieldIndex]['visibility_rule']['trigger_field_key']))
-                            <div style="display:flex;gap:8px;">
-                                <select aria-label="How the answer is compared" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.operator" class="cb-select" style="flex:1;">
-                                    <option value="equals">equals</option>
-                                    <option value="not_equals">does not equal</option>
-                                    <option value="contains">contains</option>
+                        @foreach ($editRules as $ruleIndex => $editRule)
+                            <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center;" wire:key="vr-{{ $editingFieldIndex }}-{{ $ruleIndex }}">
+                                <select aria-label="The field the rule watches" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.trigger_field_key" class="cb-select">
+                                    <option value="">Choose a field…</option>
+                                    @foreach ($otherFields as $other)
+                                        <option value="{{ $other['key'] }}">{{ $other['label'] ?: 'Untitled field' }}</option>
+                                    @endforeach
                                 </select>
-                                <input aria-label="Value the answer is compared with" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.visibility_rule.value" placeholder="value" class="cb-input" style="flex:1;">
+                                <select aria-label="How the answer is compared" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.operator" class="cb-select">
+                                    @foreach ($operatorWords as $op => $word)
+                                        <option value="{{ $op }}">{{ $word }}</option>
+                                    @endforeach
+                                </select>
+                                @if (! in_array($editRule['operator'] ?? 'equals', \App\Services\FormFieldVisibilityEvaluator::VALUELESS, true))
+                                    <input aria-label="Value the answer is compared with" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.value" placeholder="value" class="cb-input">
+                                @else
+                                    <span class="cb-hint" style="margin:0;">—</span>
+                                @endif
+                                <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="min-width:30px;padding:0;color:var(--cb-stamp-red)" wire:click="removeVisibilityRule({{ $editingFieldIndex }}, {{ $ruleIndex }})" aria-label="Remove this rule">✕</button>
                             </div>
-                            <p class="cb-hint">This field is hidden from respondents until the answer above matches — and its answer is never recorded while hidden.</p>
+                        @endforeach
+
+                        <div>
+                            <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="addVisibilityRule({{ $editingFieldIndex }})">+ Add a rule</button>
+                        </div>
+
+                        @if ($editRules !== [])
+                            <p class="cb-hint">While the rules do not match, this field is hidden from respondents, is never required, and its answer is never recorded.</p>
+                        @else
+                            <p class="cb-hint">No rules: the field always shows.</p>
                         @endif
                     </div>
                 </div>
