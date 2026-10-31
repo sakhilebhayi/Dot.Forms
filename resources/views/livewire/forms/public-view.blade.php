@@ -39,6 +39,17 @@
     $logoUrl = $form->logo_path ? asset('storage/' . $form->logo_path) : null;
     $serial = 'FRM-' . str_pad((string) $form->id, 3, '0', STR_PAD_LEFT);
     $questionNo = 0;
+
+    // Theme studio (R-30 Phase 4): preset class + the master's accent and width as
+    // inline custom properties. Legacy theme values map onto the presets.
+    $preset = $form->settings['theme_preset']
+        ?? ['light' => 'carbon', 'dark' => 'midnight', 'brand' => 'letterhead'][$form->settings['theme'] ?? 'light']
+        ?? 'carbon';
+    $preset = in_array($preset, ['carbon', 'midnight', 'letterhead', 'plain'], true) ? $preset : 'carbon';
+    $accent = (string) ($form->settings['brand_color'] ?? '');
+    $accent = preg_match('/^#[0-9a-fA-F]{6}$/', $accent) ? $accent : null;
+    $docWidth = ['narrow' => '560px', 'standard' => '660px', 'wide' => '780px'][$form->settings['doc_width'] ?? 'standard'] ?? '660px';
+    $docStyle = '--cbd-width: '.$docWidth.';'.($accent ? ' --cbd-accent: '.$accent.';' : '');
 @endphp
 
 @if (! empty($customCss))
@@ -54,7 +65,7 @@
      conversational_mode and conditional logic are both used together, a mid-fill
      visibility change won't retarget Alpine's step bounds until the page reloads.
      `showAll` opens every page after a failed submit so no error can hide. --}}
-<div class="cb-doc" x-data="{ submitted: @entangle('submitted'), step: 0, conversational: {{ $isConversational ? 'true' : 'false' }}, total: {{ $renderFields->count() }}, page: 0, pages: {{ $pageCount }}, showAll: {{ $errors->any() ? 'true' : 'false' }} }">
+<div class="cb-doc cb-doc--{{ $preset }}" style="{{ $docStyle }}" x-data="{ submitted: @entangle('submitted'), step: 0, conversational: {{ $isConversational ? 'true' : 'false' }}, total: {{ $renderFields->count() }}, page: 0, pages: {{ $pageCount }}, showAll: {{ $errors->any() ? 'true' : 'false' }} }">
     @if ($logoUrl)
         <img src="{{ $logoUrl }}" alt="{{ $form->title }} logo" style="height:40px;width:auto;margin-bottom:18px;">
     @endif

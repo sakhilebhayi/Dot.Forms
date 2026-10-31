@@ -15,12 +15,21 @@
         <p class="cb-note" role="status">{{ session('status') }}</p>
     @endif
 
-    <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0 0 16px;">
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;margin:0 0 16px;">
         <div>
             <label class="cb-label" for="sub-search-submissions">Search submissions</label>
             <input id="sub-search-submissions" class="cb-input" type="text" wire:model.live.debounce.300ms="search" placeholder="Search inside submission data">
         </div>
         <div>
+            <label class="cb-label" for="sub-status-filter">Show</label>
+            <select id="sub-status-filter" class="cb-select" wire:model.live="statusFilter">
+                <option value="all">Every copy</option>
+                @foreach (\App\Models\FormSubmission::STATUS_LABELS as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div style="grid-column:1 / -1;">
             <span class="cb-label">Visible columns</span>
             <div style="display:flex;flex-wrap:wrap;gap:8px 18px;">
                 @foreach ($this->collectableFields() as $field)
@@ -42,6 +51,8 @@
                     </th>
                     <th>Copy</th>
                     <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Held by</th>
                     @foreach ($this->collectableFields()->whereIn('id', $selectedFieldIds) as $field)
                         <th>{{ $field->label }}</th>
                     @endforeach
@@ -54,6 +65,21 @@
                         <td><input aria-label="Select submission #{{ $submission->id }}" type="checkbox" wire:model.live="selectedSubmissionIds" value="{{ $submission->id }}"></td>
                         <td><span class="cb-mono">FRM-{{ str_pad((string) $form->id, 3, '0', STR_PAD_LEFT) }}/{{ $submission->id }}</span></td>
                         <td class="cb-dim">{{ optional($submission->submitted_at)->diffForHumans() }}</td>
+                        <td>
+                            <select class="cb-select" style="height:30px;font-size:12px;min-width:110px;" aria-label="Status of copy {{ $submission->id }}" wire:change="setStatus({{ $submission->id }}, $event.target.value)">
+                                @foreach (\App\Models\FormSubmission::STATUS_LABELS as $value => $label)
+                                    <option value="{{ $value }}" @selected($submission->status === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td>
+                            <select class="cb-select" style="height:30px;font-size:12px;min-width:120px;" aria-label="Assignee of copy {{ $submission->id }}" wire:change="assign({{ $submission->id }}, $event.target.value || null)">
+                                <option value="">Nobody</option>
+                                @foreach ($this->assignees() as $userId => $userName)
+                                    <option value="{{ $userId }}" @selected($submission->assigned_to === $userId)>{{ $userName }}</option>
+                                @endforeach
+                            </select>
+                        </td>
                         @foreach ($this->collectableFields()->whereIn('id', $selectedFieldIds) as $field)
                             <td style="overflow-wrap:break-word;max-width:260px;">{{ $this->fieldValue($submission, (int) $field->id) }}</td>
                         @endforeach
@@ -89,6 +115,14 @@
         </x-slot>
 
         <x-slot name="footer">
+            @if ($activeSubmission)
+                <div style="flex:1;margin-right:12px;text-align:left;">
+                    <label class="cb-label" for="desk-note">Internal note (never shown to the respondent)</label>
+                    <textarea id="desk-note" class="cb-textarea" rows="2" wire:model="noteDraft"></textarea>
+                    @error('noteDraft')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                    <button wire:click="saveNote" class="cb-btn cb-btn--sm" style="margin-top:6px;">Save note</button>
+                </div>
+            @endif
             @if ($activeSubmission && $activeSubmission->user_id)
                 <button wire:click="exportUserData({{ $activeSubmission->id }})" class="cb-btn cb-btn--quiet" style="margin-right:8px;">Export User Data</button>
             @endif

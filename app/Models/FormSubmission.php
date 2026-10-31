@@ -15,6 +15,16 @@ class FormSubmission extends Model
      *
      * @var array<int, string>
      */
+    /** The desk's working states (R-30 Phase 4). */
+    public const STATUSES = ['new', 'in_review', 'actioned', 'closed'];
+
+    public const STATUS_LABELS = [
+        'new' => 'New',
+        'in_review' => 'In review',
+        'actioned' => 'Actioned',
+        'closed' => 'Closed',
+    ];
+
     protected $fillable = [
         'form_id',
         'user_id',
@@ -25,7 +35,15 @@ class FormSubmission extends Model
         'quiz_max_score',
         'ip_address',
         'user_agent',
+        'status',
+        'assigned_to',
+        'internal_note',
     ];
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
 
     /**
      * Get the attributes that should be cast.

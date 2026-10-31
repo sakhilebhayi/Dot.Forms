@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Form;
+use App\Models\FormSubmission;
 use App\Support\FieldTypes;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -23,7 +24,7 @@ class FormSubmissionsExport implements FromArray, WithHeadings
             ->values()
             ->all();
 
-        return array_merge(['Submission ID', 'Submitted At'], $labels);
+        return array_merge(['Submission ID', 'Submitted At', 'Status', 'Held By'], $labels);
     }
 
     public function array(): array
@@ -32,6 +33,7 @@ class FormSubmissionsExport implements FromArray, WithHeadings
 
         $submissions = $this->form
             ->submissions()
+            ->with('assignee')
             ->latest('submitted_at')
             ->get();
 
@@ -39,6 +41,8 @@ class FormSubmissionsExport implements FromArray, WithHeadings
             $row = [
                 $submission->id,
                 optional($submission->submitted_at)?->toDateTimeString(),
+                FormSubmission::STATUS_LABELS[$submission->status] ?? $submission->status,
+                $submission->assignee?->name ?? '',
             ];
 
             foreach ($this->form->fields->filter(fn ($f) => FieldTypes::collectsAnswer($f->type))->whereIn('id', $this->fieldIds) as $field) {

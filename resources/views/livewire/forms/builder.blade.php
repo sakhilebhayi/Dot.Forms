@@ -196,16 +196,26 @@
                 <summary>Appearance</summary>
                 <div>
                     <div class="cb-field">
-                        <label class="cb-label" for="fb-theme">Theme</label>
-                        <select id="fb-theme" wire:model.live="settings.theme" class="cb-select">
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
-                            <option value="brand">Brand</option>
+                        <label class="cb-label" for="fb-theme-preset">Document theme</label>
+                        <select id="fb-theme-preset" wire:model.live="settings.theme_preset" class="cb-select">
+                            <option value="carbon">Carbon — the paper default</option>
+                            <option value="midnight">Midnight — dark paper</option>
+                            <option value="letterhead">Letterhead — your colour on the masthead</option>
+                            <option value="plain">Plain — no boxes, just questions</option>
                         </select>
                     </div>
                     <div class="cb-field">
-                        <label class="cb-label" for="fb-brand-color">Brand Color</label>
-                        <input id="fb-brand-color" type="text" wire:model.live="settings.brand_color" class="cb-input" placeholder="#4f46e5" />
+                        <label class="cb-label" for="fb-doc-width">Document width</label>
+                        <select id="fb-doc-width" wire:model.live="settings.doc_width" class="cb-select">
+                            <option value="narrow">Narrow</option>
+                            <option value="standard">Standard</option>
+                            <option value="wide">Wide</option>
+                        </select>
+                    </div>
+                    <div class="cb-field">
+                        <label class="cb-label" for="fb-brand-color">Accent colour</label>
+                        <input id="fb-brand-color" type="text" wire:model.live="settings.brand_color" class="cb-input" placeholder="#2b4a9e" />
+                        <p class="cb-hint">Serials, focus and the masthead on the Letterhead theme. A six-digit hex colour.</p>
                     </div>
                     <div class="cb-field">
                         <label class="cb-label" for="fb-logo">Logo</label>
