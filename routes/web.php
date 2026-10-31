@@ -12,6 +12,7 @@ use App\Livewire\Forms\AiFieldSuggestion;
 use App\Livewire\Forms\Builder;
 use App\Livewire\Forms\PublicView;
 use App\Livewire\Forms\Submissions;
+use App\Livewire\Forms\Templates;
 use App\Models\Team;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
@@ -76,6 +77,9 @@ Route::middleware([
 
     Route::get('/teams/{team}/forms/{form}/submissions', Submissions::class)
         ->name('teams.forms.submissions');
+
+    Route::get('/teams/{team}/forms/templates', Templates::class)
+        ->name('teams.forms.templates');
 
     Route::get('/teams/{team}/forms/ai-builder', AiBuilder::class)
         ->name('teams.forms.ai-builder');
