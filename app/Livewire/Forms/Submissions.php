@@ -42,6 +42,59 @@ class Submissions extends Component
 
     public ?FormSubmission $activeSubmission = null;
 
+    /** The desk (R-30 Phase 4): filter by working state; edit note on the open copy. */
+    public string $statusFilter = 'all';
+
+    public string $noteDraft = '';
+
+    public function setStatus(int $submissionId, string $status): void
+    {
+        if (! in_array($status, FormSubmission::STATUSES, true)) {
+            return;
+        }
+
+        $this->form->submissions()->whereKey($submissionId)->update(['status' => $status]);
+
+        if ($this->activeSubmission?->id === $submissionId) {
+            $this->activeSubmission->refresh();
+        }
+    }
+
+    public function assign(int $submissionId, ?int $userId): void
+    {
+        // Only someone on this team may hold a copy.
+        if ($userId !== null && ! $this->team->users->contains('id', $userId) && $this->team->user_id !== $userId) {
+            return;
+        }
+
+        $this->form->submissions()->whereKey($submissionId)->update(['assigned_to' => $userId ?: null]);
+
+        if ($this->activeSubmission?->id === $submissionId) {
+            $this->activeSubmission->refresh();
+        }
+    }
+
+    public function saveNote(): void
+    {
+        if (! $this->activeSubmission) {
+            return;
+        }
+
+        $this->validate(['noteDraft' => ['nullable', 'string', 'max:5000']]);
+
+        $this->form->submissions()->whereKey($this->activeSubmission->id)
+            ->update(['internal_note' => $this->noteDraft ?: null]);
+        $this->activeSubmission->refresh();
+
+        session()->flash('status', 'Note saved on copy FRM-'.str_pad((string) $this->form->id, 3, '0', STR_PAD_LEFT).'/'.$this->activeSubmission->id.'. Respondents never see it.');
+    }
+
+    /** @return array<int, string> id => name, the people a copy can be assigned to */
+    public function assignees(): array
+    {
+        return $this->team->allUsers()->pluck('name', 'id')->all();
+    }
+
     public function mount(Team $team, Form $form): void
     {
         Gate::authorize('view', $team);
@@ -59,6 +112,11 @@ class Submissions extends Component
         $this->selectedFieldIds = $this->collectableFields()->pluck('id')->all();
     }
 
+    public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -72,6 +130,7 @@ class Submissions extends Component
     public function viewSubmission(int $submissionId): void
     {
         $this->activeSubmission = $this->form->submissions()->findOrFail($submissionId);
+        $this->noteDraft = (string) ($this->activeSubmission->internal_note ?? '');
         $this->showDetailModal = true;
     }
 
@@ -216,9 +275,11 @@ class Submissions extends Component
     {
         return $this->form
             ->submissions()
+            ->with('assignee')
             ->when($this->search !== '', function ($query): void {
                 $query->whereRaw('LOWER(data) like ?', ['%'.strtolower($this->search).'%']);
             })
+            ->when($this->statusFilter !== 'all', fn ($query) => $query->where('status', $this->statusFilter))
             ->latest('submitted_at')
             ->paginate(15);
     }

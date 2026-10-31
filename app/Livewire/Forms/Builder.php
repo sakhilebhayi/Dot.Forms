@@ -399,6 +399,8 @@ class Builder extends Component
             'settings.zapier_webhook_url' => ['nullable', 'url', 'max:2048', new SafeWebhookUrl],
             'settings.make_webhook_url' => ['nullable', 'url', 'max:2048', new SafeWebhookUrl],
             'settings.theme' => ['nullable', 'in:light,dark,brand'],
+            'settings.theme_preset' => ['nullable', 'in:carbon,midnight,letterhead,plain'],
+            'settings.doc_width' => ['nullable', 'in:narrow,standard,wide'],
             'settings.brand_color' => ['nullable', 'regex:/^#?[0-9A-Fa-f]{6}$/'],
             'settings.custom_css' => ['nullable', 'string', 'max:8000'],
             'settings.retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
@@ -438,7 +440,9 @@ class Builder extends Component
                 'open_at' => $validated['settings']['open_at'] ?? null,
                 'close_at' => $validated['settings']['close_at'] ?? null,
                 'theme' => $validated['settings']['theme'] ?? 'light',
-                'brand_color' => $validated['settings']['brand_color'] ?? '#4f46e5',
+                'theme_preset' => $validated['settings']['theme_preset'] ?? 'carbon',
+                'doc_width' => $validated['settings']['doc_width'] ?? 'standard',
+                'brand_color' => $validated['settings']['brand_color'] ?? '#2b4a9e',
                 'custom_css' => $this->sanitizeCustomCss((string) ($validated['settings']['custom_css'] ?? '')),
                 'retention_days' => $validated['settings']['retention_days'] ?? null,
                 'consent_required' => (bool) ($validated['settings']['consent_required'] ?? false),
@@ -623,7 +627,9 @@ class Builder extends Component
             'zapier_webhook_url' => null,
             'make_webhook_url' => null,
             'theme' => 'light',
-            'brand_color' => '#4f46e5',
+            'theme_preset' => null,
+            'doc_width' => 'standard',
+            'brand_color' => '#2b4a9e',
             'custom_css' => null,
             'retention_days' => null,
             'consent_required' => false,
@@ -634,6 +640,10 @@ class Builder extends Component
             'crm_provider' => 'none',
             'crm_webhook_url' => null,
         ], $this->form->settings ?? []);
+
+        // A master saved before the theme studio maps its legacy theme onto a preset,
+        // so the builder shows what the public document already renders.
+        $this->settings['theme_preset'] ??= ['light' => 'carbon', 'dark' => 'midnight', 'brand' => 'letterhead'][$this->settings['theme'] ?? 'light'] ?? 'carbon';
 
         foreach ($this->form->integrations as $integration) {
             $key = match ($integration->type) {
