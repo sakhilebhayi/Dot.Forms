@@ -12,7 +12,8 @@
         ->filter(fn ($field) => $this->isFieldVisible($field))
         ->values();
 
-    // What actually renders as questions: structural breaks and hidden values never do.
+    // What actually renders: structural breaks and hidden values never do; content
+    // elements render unboxed and unnumbered (R-31).
     $renderFields = $orderedFields
         ->reject(fn ($field) => $field->type === FieldTypes::PAGE_BREAK || $field->type === 'hidden')
         ->values();
@@ -77,7 +78,7 @@
     <p class="cb-doc__meta">
         {{ $form->team?->name ?? config('app.name') }}
         @if ($isConversational && $renderFields->count() > 0)
-            · <span x-text="'question ' + (step + 1) + ' of ' + total"></span>
+            · <span x-text="(step + 1) + ' of ' + total"></span>
         @elseif ($pageCount > 1)
             · <span x-show="!showAll" x-text="'page ' + (page + 1) + ' of ' + pages"></span>
         @endif
@@ -102,6 +103,16 @@
 
             @if ($isConversational)
                 @foreach ($renderFields as $field)
+                    @if (FieldTypes::isDisplay($field->type))
+                        <div x-show="step === {{ $loop->index }}" x-cloak wire:key="q-{{ $field->id }}">
+                            @include('livewire.forms.partials.element-display', ['field' => $field])
+                            <div style="display:flex;gap:8px;margin:12px 0 18px;">
+                                @if (! $loop->first)<button type="button" class="cb-btn cb-btn--sm" @click="step = Math.max(step - 1, 0)">← Back</button>@endif
+                                @if (! $loop->last)<button type="button" class="cb-btn cb-btn--primary cb-btn--sm" @click="step = Math.min(step + 1, total - 1)">Next →</button>@endif
+                            </div>
+                        </div>
+                        @continue
+                    @endif
                     <div class="cb-q" x-show="step === {{ $loop->index }}" x-cloak wire:key="q-{{ $field->id }}">
                         <span class="cb-q__no">{{ str_pad((string) ($loop->index + 1), 2, '0', STR_PAD_LEFT) }}</span>
                         @include('livewire.forms.partials.field-input', ['field' => $field])
@@ -120,6 +131,12 @@
                 @foreach ($pages as $pageIndex => $pageFields)
                     <div @if ($pageCount > 1) x-show="showAll || page === {{ $pageIndex }}" x-cloak @endif wire:key="page-{{ $pageIndex }}">
                         @foreach ($pageFields as $field)
+                            @if (FieldTypes::isDisplay($field->type))
+                                <div wire:key="q-{{ $field->id }}">
+                                    @include('livewire.forms.partials.element-display', ['field' => $field])
+                                </div>
+                                @continue
+                            @endif
                             @php $questionNo++; @endphp
                             <div class="cb-q" wire:key="q-{{ $field->id }}">
                                 <span class="cb-q__no">{{ str_pad((string) $questionNo, 2, '0', STR_PAD_LEFT) }}</span>

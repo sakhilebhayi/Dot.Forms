@@ -15,6 +15,9 @@ class FieldTypes
     /** Structural: starts a new page on the published form; collects nothing. */
     public const PAGE_BREAK = 'page_break';
 
+    /** Content elements (R-31): they render on the document but never collect an answer. */
+    public const DISPLAY_TYPES = ['heading', 'text_block', 'image', 'video', 'divider'];
+
     /** Every type the builder may save, in tray order within their groups. */
     public const ALL = [
         // text and contact
@@ -27,6 +30,8 @@ class FieldTypes
         'date', 'time', 'datetime',
         // attachments
         'file', 'signature',
+        // content (collects nothing; tells the story between questions)
+        'heading', 'text_block', 'image', 'video', 'divider',
         // other
         'country', 'hidden', self::PAGE_BREAK,
     ];
@@ -43,6 +48,7 @@ class FieldTypes
             'Choices' => ['select', 'multiselect', 'radio', 'yesno', 'checkbox', 'consent'],
             'Date & time' => ['date', 'time', 'datetime'],
             'Attachments' => ['file', 'signature'],
+            'Content' => ['heading', 'text_block', 'image', 'video', 'divider'],
             'Structure' => ['country', 'hidden', self::PAGE_BREAK],
         ];
     }
@@ -73,6 +79,11 @@ class FieldTypes
             'signature' => 'Signature',
             'country' => 'Country',
             'hidden' => 'Hidden value',
+            'heading' => 'Section heading',
+            'text_block' => 'Text block',
+            'image' => 'Image',
+            'video' => 'Video embed',
+            'divider' => 'Divider',
             self::PAGE_BREAK => 'Page break',
             default => ucfirst($type),
         };
@@ -89,13 +100,20 @@ class FieldTypes
             'date' => '31', 'time' => '⏱', 'datetime' => '31⏱',
             'file' => '↥', 'signature' => '✎',
             'country' => 'ZA', 'hidden' => '·', self::PAGE_BREAK => '⤵',
+            'heading' => 'H2', 'text_block' => 'Tx', 'image' => '▣', 'video' => '▶', 'divider' => '—',
             default => '·',
         };
     }
 
     public static function collectsAnswer(string $type): bool
     {
-        return $type !== self::PAGE_BREAK;
+        return $type !== self::PAGE_BREAK && ! in_array($type, self::DISPLAY_TYPES, true);
+    }
+
+    /** Content element (R-31): rendered unboxed and unnumbered on the document. */
+    public static function isDisplay(string $type): bool
+    {
+        return in_array($type, self::DISPLAY_TYPES, true);
     }
 
     public static function usesChoices(string $type): bool

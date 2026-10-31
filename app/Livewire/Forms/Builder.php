@@ -15,6 +15,7 @@ use App\Services\FormFieldVisibilityEvaluator;
 use App\Services\FormTemplateService;
 use App\Services\PublicFormCache;
 use App\Support\FieldTypes;
+use App\Support\VideoEmbed;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,8 @@ class Builder extends Component
     public array $fieldTypes = FieldTypes::ALL;
 
     /** When the master last reached the database, for the press's saved chip. */
+    public array $elementImages = [];
+
     public ?string $lastSavedAt = null;
 
     public function mount(Team $team, Form $form): void
@@ -103,6 +106,9 @@ class Builder extends Component
             'placeholder' => null,
             'options' => '',
             'default_value' => null,
+            'body' => null,
+            'video_url' => null,
+            'image_path' => null,
             'required' => false,
             'helper_text' => null,
             'conditional_logic' => null,
@@ -137,6 +143,43 @@ class Builder extends Component
 
         unset($this->fields[$index]['visibility']['rules'][$ruleIndex]);
         $this->fields[$index]['visibility']['rules'] = array_values($this->fields[$index]['visibility']['rules']);
+    }
+
+    /** The living master (R-31): click an element on the canvas to edit it beside the sheet. */
+    public function selectField(int $index): void
+    {
+        $this->editingFieldIndex = isset($this->fields[$index]) ? $index : null;
+        $this->showFieldSettingsModal = false;
+    }
+
+    public function deselectField(): void
+    {
+        $this->editingFieldIndex = null;
+    }
+
+    /** Insert a short-text element at this position and select it; its type is changed in place. */
+    public function insertFieldAt(int $position): void
+    {
+        Gate::authorize('canEditForm', $this->team);
+
+        $this->addField('text');
+        $new = array_pop($this->fields);
+        $position = max(0, min($position, count($this->fields)));
+        array_splice($this->fields, $position, 0, [$new]);
+        $this->reindexElementImages();
+        $this->editingFieldIndex = $position;
+    }
+
+    /** Keeps pending element images attached to the right index across splices. */
+    private function reindexElementImages(): void
+    {
+        // Pending uploads are keyed by index; after an insert the safest honest move is to
+        // keep only uploads whose index still points at an image element.
+        foreach ($this->elementImages as $index => $upload) {
+            if (($this->fields[$index]['type'] ?? null) !== 'image') {
+                unset($this->elementImages[$index]);
+            }
+        }
     }
 
     /** A copy of the field, directly under it, with its own key (R-30 Phase 2). */
@@ -417,6 +460,10 @@ class Builder extends Component
             'fields.*.placeholder' => ['nullable', 'string', 'max:255'],
             'fields.*.options' => ['nullable', 'string'],
             'fields.*.default_value' => ['nullable', 'string', 'max:1000'],
+            'fields.*.body' => ['nullable', 'string', 'max:5000'],
+            'fields.*.video_url' => ['nullable', 'url', 'max:500'],
+            'fields.*.image_path' => ['nullable', 'string', 'max:500'],
+            'elementImages.*' => ['nullable', 'image', 'max:5120'],
             'fields.*.required' => ['boolean'],
             'fields.*.helper_text' => ['nullable', 'string', 'max:500'],
             'fields.*.conditional_logic' => ['nullable', 'string', 'max:1000'],
@@ -486,6 +533,30 @@ class Builder extends Component
                 }
                 $rules = array_merge($rules, FieldTypes::storedRules($field['type']));
 
+                // Content elements (R-31): a video must parse to a known provider, and an
+                // image element stores its upload beside the form's other media.
+                $video = null;
+                if ($field['type'] === 'video' && filled($field['video_url'] ?? null)) {
+                    $video = VideoEmbed::parse((string) $field['video_url']);
+
+                    if ($video === null) {
+                        throw ValidationException::withMessages([
+                            'fields.'.$index.'.video_url' => 'Only YouTube and Vimeo links can be embedded.',
+                        ]);
+                    }
+                }
+
+                $imagePath = $field['image_path'] ?? null;
+                if ($field['type'] === 'image' && isset($this->elementImages[$index])) {
+                    $imagePath = $this->elementImages[$index]->store(
+                        'form-media/'.$this->form->id,
+                        config('dotforms.forms.upload_disk', 'public')
+                    );
+                }
+                if ($field['type'] !== 'image') {
+                    $imagePath = null;
+                }
+
                 // Every field is deleted and recreated on each save, so a DB id
                 // is never stable enough for a visibility rule to reference --
                 // it's keyed by this stable builder-assigned UUID instead
@@ -529,6 +600,10 @@ class Builder extends Component
                     'options' => [
                         'choices' => $options,
                         'default_value' => $field['type'] === 'hidden' ? ($field['default_value'] ?? null) : null,
+                        'body' => $field['type'] === 'text_block' ? ($field['body'] ?? null) : null,
+                        'video_url' => $field['type'] === 'video' ? ($field['video_url'] ?? null) : null,
+                        'video' => $video,
+                        'image_path' => $imagePath,
                         'helper_text' => $field['helper_text'] ?? null,
                         'conditional_logic' => $field['conditional_logic'] ?? null,
                         'field_key' => $key,
@@ -552,6 +627,7 @@ class Builder extends Component
         }));
         $this->hydrateState();
         $this->logoUpload = null;
+        $this->elementImages = [];
         $this->lastSavedAt = now()->format('H:i');
 
         // ->toOthers(): the saving client already has what it just wrote;
@@ -704,6 +780,9 @@ class Builder extends Component
                     'placeholder' => $field->placeholder,
                     'options' => is_array($choices) ? implode(', ', $choices) : '',
                     'default_value' => $field->options['default_value'] ?? null,
+                    'body' => $field->options['body'] ?? null,
+                    'video_url' => $field->options['video_url'] ?? null,
+                    'image_path' => $field->options['image_path'] ?? null,
                     'required' => in_array('required', $field->validation_rules ?? [], true),
                     'helper_text' => $field->options['helper_text'] ?? null,
                     'conditional_logic' => $field->options['conditional_logic'] ?? null,
