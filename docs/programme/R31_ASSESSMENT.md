@@ -45,8 +45,18 @@ themes + accent + width, the response desk. Those items are not redone here.
    link rendered as a button — respondents are never auto-redirected, and only http(s) URLs are
    accepted at save or rendered); a 3px accent progress rule for conversational and paged
    documents (260ms width transition, disabled under reduced motion).
-4. Motion pass (press transitions, document question transitions, reduced-motion audit) +
-   mobile editing ergonomics.
+4. Motion pass + mobile editing ergonomics — BUILT (Phase 4): one page-turn entrance
+   (`cb-page-in`) for conversational steps, document pages, the opened cover document, new
+   canvas elements, panel setting groups and the element toolbar; a "Lodging…" disabled
+   submit state; pressed-button feedback. Every animation/transition in carbon.css audited
+   under `prefers-reduced-motion: reduce`. Mobile press: the sheet comes first and the type
+   tray last; the selected element's settings rise as a fixed bottom sheet (62vh, Done/Esc
+   closes); a ↑ ↓ ⧉ ✕ toolbar on the selected canvas element is the touch/keyboard path
+   drag-and-drop never was (selection follows moves; removing fixes the panel index); the
+   page-head actions align as a two-column grid of equal touch targets. FINDING fixed in
+   the live round: the properties panel was morphed in place when the selection moved, so
+   its inputs kept the previous element's values — the panel is now `wire:key`ed by the
+   selected element's key.
 
 Out of honest scope for now (stated, not faked): video uploads (host storage and transcoding),
 multi-column layouts, free image repositioning/cropping inside the document, editor-level
