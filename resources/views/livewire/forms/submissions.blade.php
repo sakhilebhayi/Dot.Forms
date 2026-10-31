@@ -1,37 +1,31 @@
-<div class="space-y-6">
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+<div>
+    <div class="cb-pagehead">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Submissions</h2>
-            <p class="text-sm text-gray-600">{{ $form->title }}</p>
+            <h1 class="cb-h1">Copies</h1>
+            <p class="cb-sub"><span class="cb-serial">FRM-{{ str_pad((string) $form->id, 3, '0', STR_PAD_LEFT) }}</span> · {{ $form->title }}</p>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('teams.forms.builder', ['team' => $team, 'form' => $form]) }}" class="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Back to Builder</a>
-            <a href="{{ route('teams.forms.ai-analytics', ['team' => $team, 'form' => $form]) }}" class="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">AI Analytics</a>
-            <button wire:click="exportCsv" class="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Export CSV</button>
-            <button wire:click="exportExcel" class="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Export Excel</button>
-            <button wire:click="deleteSelected" wire:confirm="Delete selected submissions?" class="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete Selected</button>
-        </div>
+        <a href="{{ route('teams.forms.builder', ['team' => $team, 'form' => $form]) }}" class="cb-btn cb-btn--quiet">Open the master</a>
+        <a href="{{ route('teams.forms.ai-analytics', ['team' => $team, 'form' => $form]) }}" class="cb-btn cb-btn--quiet">AI summary</a>
+        <button wire:click="exportCsv" class="cb-btn">Export CSV</button>
+        <button wire:click="exportExcel" class="cb-btn">Export Excel</button>
+        <button wire:click="deleteSelected" wire:confirm="Delete selected submissions?" class="cb-btn cb-btn--quiet" style="color:var(--cb-stamp-red)">Delete Selected</button>
     </div>
 
     @if (session('status'))
-        <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {{ session('status') }}
-        </div>
+        <p class="cb-note" role="status">{{ session('status') }}</p>
     @endif
 
-    <div class="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0 0 16px;">
         <div>
-            <label for="sub-search-submissions" class="text-sm font-medium text-gray-700">Search Submissions</label>
-            <input id="sub-search-submissions" type="text" wire:model.live.debounce.300ms="search" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search inside submission data">
+            <label class="cb-label" for="sub-search-submissions">Search submissions</label>
+            <input id="sub-search-submissions" class="cb-input" type="text" wire:model.live.debounce.300ms="search" placeholder="Search inside submission data">
         </div>
-
         <div>
-            <p class="mb-2 text-sm font-medium text-gray-700">Visible Columns</p>
-            <div class="flex flex-wrap gap-3">
+            <span class="cb-label">Visible columns</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 18px;">
                 @foreach ($form->fields as $field)
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" wire:model.live="selectedFieldIds" value="{{ $field->id }}" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                    <label class="cb-check">
+                        <input type="checkbox" wire:model.live="selectedFieldIds" value="{{ $field->id }}">
                         {{ $field->label }}
                     </label>
                 @endforeach
@@ -39,56 +33,56 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <div style="overflow-x:auto;">
+        <table class="cb-table">
+            <thead>
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                        <input aria-label="Select all submissions" type="checkbox" x-data @change="$wire.set('selectedSubmissionIds', $event.target.checked ? @js($submissions->pluck('id')->all()) : [])" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                    <th>
+                        <input aria-label="Select all submissions" type="checkbox" x-data @change="$wire.set('selectedSubmissionIds', $event.target.checked ? @js($submissions->pluck('id')->all()) : [])">
                     </th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Submitted</th>
+                    <th>Copy</th>
+                    <th>Submitted</th>
                     @foreach ($form->fields->whereIn('id', $selectedFieldIds) as $field)
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">{{ $field->label }}</th>
+                        <th>{{ $field->label }}</th>
                     @endforeach
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Action</th>
+                    <th style="text-align:right">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 bg-white">
+            <tbody>
                 @forelse ($submissions as $submission)
-                    <tr>
-                        <td class="px-4 py-3 text-sm">
-                            <input aria-label="Select submission #{{ $submission->id }}" type="checkbox" wire:model.live="selectedSubmissionIds" value="{{ $submission->id }}" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ optional($submission->submitted_at)->diffForHumans() }}</td>
+                    <tr wire:key="sub-{{ $submission->id }}">
+                        <td><input aria-label="Select submission #{{ $submission->id }}" type="checkbox" wire:model.live="selectedSubmissionIds" value="{{ $submission->id }}"></td>
+                        <td><span class="cb-mono">FRM-{{ str_pad((string) $form->id, 3, '0', STR_PAD_LEFT) }}/{{ $submission->id }}</span></td>
+                        <td class="cb-dim">{{ optional($submission->submitted_at)->diffForHumans() }}</td>
                         @foreach ($form->fields->whereIn('id', $selectedFieldIds) as $field)
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ $this->fieldValue($submission, (int) $field->id) }}</td>
+                            <td style="overflow-wrap:break-word;max-width:260px;">{{ $this->fieldValue($submission, (int) $field->id) }}</td>
                         @endforeach
-                        <td class="px-4 py-3 text-right">
-                            <button wire:click="viewSubmission({{ $submission->id }})" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">View</button>
-                        </td>
+                        <td style="text-align:right"><button wire:click="viewSubmission({{ $submission->id }})" class="cb-btn cb-btn--quiet cb-btn--sm">Open the copy</button></td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="20" class="px-4 py-8 text-center text-sm text-gray-500">No submissions yet.</td>
-                    </tr>
+                    <tr><td colspan="20" style="text-align:center;color:var(--cb-muted);padding:34px 10px;">No submissions yet — the first copy lands here the moment someone submits.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    <div>
-        {{ $submissions->links() }}
-    </div>
+    <div style="margin-top:16px;">{{ $submissions->links() }}</div>
 
     <x-dialog-modal wire:model.live="showDetailModal">
-        <x-slot name="title">Submission Details</x-slot>
+        <x-slot name="title">
+            @if ($activeSubmission)
+                Copy FRM-{{ str_pad((string) $form->id, 3, '0', STR_PAD_LEFT) }}/{{ $activeSubmission->id }}
+            @else
+                Copy
+            @endif
+        </x-slot>
 
         <x-slot name="content">
-            <div class="space-y-2">
+            <div style="display:grid;gap:12px;">
                 @foreach ($this->activeSubmissionRows() as $label => $value)
-                    <div class="rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $label }}</p>
-                        <p class="mt-1 text-sm text-gray-800 break-words">{{ $value !== '' ? $value : '-' }}</p>
+                    <div style="border:1px solid var(--cb-boxline);border-radius:2px;padding:10px 12px;position:relative;background:var(--cb-sheet);">
+                        <p style="margin:0 0 3px;font-weight:600;font-size:13px;">{{ $label }}</p>
+                        <p style="margin:0;color:var(--cb-ink);overflow-wrap:break-word;border-bottom:1px dotted var(--cb-boxline);padding-bottom:3px;">{{ $value !== '' ? $value : '—' }}</p>
                     </div>
                 @endforeach
             </div>
@@ -96,9 +90,9 @@
 
         <x-slot name="footer">
             @if ($activeSubmission && $activeSubmission->user_id)
-                <button wire:click="exportUserData({{ $activeSubmission->id }})" class="me-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Export User Data</button>
+                <button wire:click="exportUserData({{ $activeSubmission->id }})" class="cb-btn cb-btn--quiet" style="margin-right:8px;">Export User Data</button>
             @endif
-            <x-secondary-button wire:click="closeDetailModal">Close</x-secondary-button>
+            <button wire:click="closeDetailModal" class="cb-btn">Close</button>
         </x-slot>
     </x-dialog-modal>
 </div>

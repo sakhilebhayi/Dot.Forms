@@ -89,7 +89,7 @@ class BroadcastingWithoutWebsocketTest extends TestCase
             // empty "Reload" banner show on every builder page when no websocket
             // server ever sent anything.
             $this->assertDoesNotMatchRegularExpression('/display:\s*(flex|block)/', $m[1], "{$id} must start hidden");
-            $this->assertMatchesRegularExpression('/class="hidden"|display:\s*none/', $m[1], "{$id} must start hidden");
+            $this->assertMatchesRegularExpression('/class="[^"]*\bhidden\b[^"]*"|display:\s*none/', $m[1], "{$id} must start hidden");
         }
     }
 

@@ -17,7 +17,7 @@ use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-#[Layout('components.layouts.guest')]
+#[Layout('components.layouts.document')]
 class PublicView extends Component
 {
     use WithFileUploads;
@@ -252,7 +252,7 @@ class PublicView extends Component
         return [$score, $max];
     }
 
-    #[Layout('components.layouts.guest')]
+    #[Layout('components.layouts.document')]
     public function render()
     {
         return view('livewire.forms.public-view');
