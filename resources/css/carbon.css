@@ -428,3 +428,53 @@ body.cb {
 .cb-matrix tbody th { border-top: 1px dotted var(--cbd-boxline); }
 .cb-matrix input[type="radio"] { width: 16px; height: 16px; min-height: 0; accent-color: var(--cbd-accent); }
 .cb-ranking__row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--cbd-boxline); border-radius: 2px; padding: 7px 10px; margin: 0 0 6px; background: var(--cbd-field); }
+
+/* ---------------------------------------------------------------- R-31 phase 3: the cover, progress, the receipt */
+/* The cover: the book's front page, shown before the document opens (landing presentation). */
+.cb-cover { padding: 2px 0 8px; }
+.cb-cover__img {
+    display: block; width: calc(100% + 80px); margin: -34px -40px 26px; max-height: 320px;
+    object-fit: cover; border-bottom: 1px solid var(--cbd-boxline);
+    border-radius: var(--cb-r) var(--cb-r) 0 0;
+}
+.cb-cover__kicker {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    border-top: 2px solid var(--cbd-ink); padding-top: 10px; margin: 0 0 18px;
+    font: 600 12px var(--cb-mono); color: var(--cbd-muted); letter-spacing: 0.03em;
+}
+.cb-cover__title {
+    font-size: clamp(30px, 6vw, 42px); line-height: 1.08; font-weight: 700;
+    letter-spacing: -0.01em; margin: 0 0 14px; min-width: 0; overflow-wrap: break-word;
+}
+.cb-cover__desc { color: var(--cbd-soft); font-size: 16px; max-width: 56ch; margin: 0 0 8px; }
+.cb-cover__begin { display: flex; align-items: center; gap: 14px; margin-top: 30px; flex-wrap: wrap; }
+.cb-cover__begin .cb-btn { font-size: 15px; padding: 12px 26px; min-height: 46px; }
+.cb-cover__count { font: 500 12.5px var(--cb-mono); color: var(--cbd-muted); }
+/* the builder canvas's reminder that a cover fronts this document */
+.cb-coverchip {
+    display: flex; align-items: center; gap: 10px; border: 1px dashed var(--cbd-boxline);
+    border-radius: 2px; padding: 8px 10px; margin: 0 0 16px;
+    font: 600 11px var(--cb-mono); color: var(--cbd-muted);
+}
+.cb-coverchip img { height: 34px; width: 56px; object-fit: cover; border-radius: 2px; }
+
+/* Progress: one thin rule that fills as the respondent moves through steps or pages. */
+.cb-progress { height: 3px; background: var(--cbd-boxline); border-radius: 2px; margin: -12px 0 22px; overflow: hidden; }
+.cb-progress__fill { height: 100%; width: 0; background: var(--cbd-accent); transition: width 260ms ease; }
+@media (prefers-reduced-motion: reduce) { .cb-progress__fill { transition: none; } }
+
+/* The receipt: the respondent's own copy, torn off below the stamp. */
+.cb-doc__done { animation: cb-done-in 340ms ease-out 1 backwards; }
+@keyframes cb-done-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .cb-doc__done { animation: none; } }
+.cb-doc__done h2 { font-size: 20px; font-weight: 700; margin: 16px 0 0; overflow-wrap: break-word; }
+.cb-doc__done h2 + p { margin-top: 8px; }
+.cb-receipt {
+    margin: 22px auto 0; max-width: 430px; border-top: 1px dashed var(--cbd-boxline);
+    padding-top: 13px; font: 500 12.5px var(--cb-mono); color: var(--cbd-muted); letter-spacing: 0.02em;
+}
+.cb-doc__done-actions { display: flex; gap: 10px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+    .cb-cover__img { width: calc(100% + 36px); margin: -26px -18px 20px; }
+}

@@ -105,7 +105,7 @@ class FormTemplateService
             'name' => $form->title,
             'description' => (string) ($form->description ?? ''),
             'settings' => collect($form->settings ?? [])
-                ->except(['crm_webhook_url', 'webhook_url', 'slack_webhook_url', 'zapier_webhook_url', 'make_webhook_url'])
+                ->except(['crm_webhook_url', 'webhook_url', 'slack_webhook_url', 'zapier_webhook_url', 'make_webhook_url', 'cover_path'])
                 ->all(),
             'fields' => $form->fields()->orderBy('order')->get()->map(function (FormField $field): array {
                 $visibility = $field->options['visibility'] ?? null;

@@ -85,6 +85,14 @@
             </div>
             <div class="cb-canvaswell" @keydown.escape.window="$wire.deselectField()">
                 <div class="cb-doc cb-doc--{{ $settings['theme_preset'] ?? 'carbon' }} cb-doc--canvas" :style="{maxWidth: {desk: '660px', tablet: '560px', phone: '375px'}[canvasW]}">
+                    @if (($settings['presentation'] ?? 'document') === 'landing')
+                        <div class="cb-coverchip">
+                            @if ($coverUrl)
+                                <img src="{{ $coverUrl }}" alt="">
+                            @endif
+                            <span>COVER — respondents see a cover page first. Open Preview to see it.</span>
+                        </div>
+                    @endif
                     <div class="cb-doc__head">
                         <label class="cb-label" for="fb-form-title" style="position:absolute;left:-9999px;">Form Title</label>
                         <input id="fb-form-title" type="text" wire:model.live="title" placeholder="Form Title"
@@ -327,12 +335,56 @@
             <h3 class="cb-colhead">Form settings</h3>
 
             <details open>
+                <summary>Presentation</summary>
+                <div>
+                    <div class="cb-field">
+                        <label class="cb-label" for="fb-presentation">How the form opens</label>
+                        <select id="fb-presentation" wire:model.live="settings.presentation" class="cb-select">
+                            <option value="document">Document — straight to the questions</option>
+                            <option value="landing">Cover — a landing page first, then the document</option>
+                        </select>
+                    </div>
+                    @if (($settings['presentation'] ?? 'document') === 'landing')
+                        <div class="cb-field">
+                            <label class="cb-label" for="fb-cover">Cover image</label>
+                            <input id="fb-cover" type="file" wire:model="coverUpload" accept="image/*" class="cb-input" style="padding:6px 10px;height:auto;" />
+                            @error('coverUpload')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                            @if ($coverUrl)
+                                <img src="{{ $coverUrl }}" alt="Cover image" style="margin-top:8px;max-height:72px;width:auto;border-radius:2px;">
+                                <div><button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="margin-top:6px;" wire:click="removeCover">Remove the cover image</button></div>
+                            @endif
+                            <p class="cb-hint">Optional. Shown full width at the top of the cover; the title, description and a Begin button follow it.</p>
+                        </div>
+                    @endif
+                </div>
+            </details>
+
+            <details open>
                 <summary>After submitting</summary>
                 <div>
+                    <div class="cb-field">
+                        <label class="cb-label" for="fb-completion-title">Completion heading</label>
+                        <input id="fb-completion-title" type="text" wire:model.live="settings.completion_title" class="cb-input" placeholder="Thank you — we have your details" />
+                    </div>
                     <div class="cb-field">
                         <label class="cb-label" for="fb-confirmation-message">Confirmation Message</label>
                         <textarea id="fb-confirmation-message" wire:model.live="settings.confirmation_message" rows="2" class="cb-textarea"></textarea>
                     </div>
+                    <label class="cb-check" style="margin:0 0 10px;">
+                        <input type="checkbox" wire:model.live="settings.completion_show_another" />
+                        <span>Offer "Submit another response"</span>
+                    </label>
+                    <div class="cb-field">
+                        <label class="cb-label" for="fb-redirect-url">Onward link (optional)</label>
+                        <input id="fb-redirect-url" type="url" wire:model.live="settings.completion_redirect_url" class="cb-input" placeholder="https://your-site.example/thanks" />
+                        <p class="cb-hint">Shown as a button on the completion screen — respondents are never redirected without choosing to.</p>
+                    </div>
+                    @if (filled($settings['completion_redirect_url'] ?? null))
+                        <div class="cb-field">
+                            <label class="cb-label" for="fb-redirect-label">Onward link label</label>
+                            <input id="fb-redirect-label" type="text" wire:model.live="settings.completion_redirect_label" class="cb-input" placeholder="Continue" />
+                        </div>
+                    @endif
                 </div>
             </details>
 
