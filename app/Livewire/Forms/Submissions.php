@@ -6,6 +6,7 @@ use App\Exports\FormSubmissionsExport;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Team;
+use App\Support\FieldTypes;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -55,7 +56,7 @@ class Submissions extends Component
 
         $this->team = $team;
         $this->form = $form->load('fields');
-        $this->selectedFieldIds = $this->form->fields->pluck('id')->all();
+        $this->selectedFieldIds = $this->collectableFields()->pluck('id')->all();
     }
 
     public function updatingSearch(): void
@@ -162,10 +163,16 @@ class Submissions extends Component
     protected function effectiveFieldIds(): array
     {
         if ($this->selectedFieldIds === []) {
-            return $this->form->fields->pluck('id')->all();
+            return $this->collectableFields()->pluck('id')->all();
         }
 
         return $this->selectedFieldIds;
+    }
+
+    /** The fields that can hold an answer: structural page breaks never show as columns. */
+    public function collectableFields()
+    {
+        return $this->form->fields->filter(fn ($field) => FieldTypes::collectsAnswer($field->type))->values();
     }
 
     public function fieldValue(FormSubmission $submission, int $fieldId): string
@@ -194,7 +201,7 @@ class Submissions extends Component
 
         $rows = [];
 
-        foreach ($this->form->fields as $field) {
+        foreach ($this->collectableFields() as $field) {
             $rows[$field->label] = $this->fieldValue($this->activeSubmission, (int) $field->id);
         }
 
