@@ -23,7 +23,7 @@
         <div>
             <span class="cb-label">Visible columns</span>
             <div style="display:flex;flex-wrap:wrap;gap:8px 18px;">
-                @foreach ($form->fields as $field)
+                @foreach ($this->collectableFields() as $field)
                     <label class="cb-check">
                         <input type="checkbox" wire:model.live="selectedFieldIds" value="{{ $field->id }}">
                         {{ $field->label }}
@@ -42,7 +42,7 @@
                     </th>
                     <th>Copy</th>
                     <th>Submitted</th>
-                    @foreach ($form->fields->whereIn('id', $selectedFieldIds) as $field)
+                    @foreach ($this->collectableFields()->whereIn('id', $selectedFieldIds) as $field)
                         <th>{{ $field->label }}</th>
                     @endforeach
                     <th style="text-align:right">Action</th>
@@ -54,7 +54,7 @@
                         <td><input aria-label="Select submission #{{ $submission->id }}" type="checkbox" wire:model.live="selectedSubmissionIds" value="{{ $submission->id }}"></td>
                         <td><span class="cb-mono">FRM-{{ str_pad((string) $form->id, 3, '0', STR_PAD_LEFT) }}/{{ $submission->id }}</span></td>
                         <td class="cb-dim">{{ optional($submission->submitted_at)->diffForHumans() }}</td>
-                        @foreach ($form->fields->whereIn('id', $selectedFieldIds) as $field)
+                        @foreach ($this->collectableFields()->whereIn('id', $selectedFieldIds) as $field)
                             <td style="overflow-wrap:break-word;max-width:260px;">{{ $this->fieldValue($submission, (int) $field->id) }}</td>
                         @endforeach
                         <td style="text-align:right"><button wire:click="viewSubmission({{ $submission->id }})" class="cb-btn cb-btn--quiet cb-btn--sm">Open the copy</button></td>

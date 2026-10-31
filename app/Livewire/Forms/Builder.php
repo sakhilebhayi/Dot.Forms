@@ -11,6 +11,7 @@ use App\Models\Team;
 use App\Rules\SafeWebhookUrl;
 use App\Services\Ai\AiFieldSuggestionEngine;
 use App\Services\PublicFormCache;
+use App\Support\FieldTypes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -61,17 +62,10 @@ class Builder extends Component
     /**
      * @var array<int, string>
      */
-    public array $fieldTypes = [
-        'text',
-        'email',
-        'number',
-        'textarea',
-        'select',
-        'radio',
-        'checkbox',
-        'date',
-        'file',
-    ];
+    public array $fieldTypes = FieldTypes::ALL;
+
+    /** When the master last reached the database, for the press's saved chip. */
+    public ?string $lastSavedAt = null;
 
     public function mount(Team $team, Form $form): void
     {
@@ -102,14 +96,32 @@ class Builder extends Component
             'id' => null,
             'key' => (string) Str::uuid(),
             'type' => $type,
-            'label' => Str::headline($type).' Field',
+            'label' => FieldTypes::label($type),
             'placeholder' => null,
             'options' => '',
+            'default_value' => null,
             'required' => false,
             'helper_text' => null,
             'conditional_logic' => null,
             'visibility_rule' => ['trigger_field_key' => null, 'operator' => 'equals', 'value' => ''],
         ];
+    }
+
+    /** A copy of the field, directly under it, with its own key (R-30 Phase 2). */
+    public function duplicateField(int $index): void
+    {
+        Gate::authorize('canEditForm', $this->team);
+
+        if (! isset($this->fields[$index])) {
+            return;
+        }
+
+        $copy = $this->fields[$index];
+        $copy['id'] = null;
+        $copy['key'] = (string) Str::uuid();
+        $copy['label'] = trim(($copy['label'] ?? '')).' (copy)';
+
+        array_splice($this->fields, $index + 1, 0, [$copy]);
     }
 
     public function removeField(int $index): void
@@ -343,10 +355,11 @@ class Builder extends Component
             'settings.crm_provider' => ['nullable', 'in:none,hubspot,pipedrive,generic'],
             'settings.crm_webhook_url' => ['nullable', 'url', 'max:2048', new SafeWebhookUrl],
             'fields' => ['array'],
-            'fields.*.type' => ['required', 'string'],
+            'fields.*.type' => ['required', 'string', 'in:'.implode(',', FieldTypes::ALL)],
             'fields.*.label' => ['required', 'string', 'max:255'],
             'fields.*.placeholder' => ['nullable', 'string', 'max:255'],
             'fields.*.options' => ['nullable', 'string'],
+            'fields.*.default_value' => ['nullable', 'string', 'max:1000'],
             'fields.*.required' => ['boolean'],
             'fields.*.helper_text' => ['nullable', 'string', 'max:500'],
             'fields.*.conditional_logic' => ['nullable', 'string', 'max:1000'],
@@ -395,7 +408,7 @@ class Builder extends Component
             foreach ($validated['fields'] as $index => $field) {
                 $options = [];
 
-                if (in_array($field['type'], ['select', 'radio', 'checkbox'], true)) {
+                if (FieldTypes::usesChoices($field['type'])) {
                     $options = collect(explode(',', (string) ($field['options'] ?? '')))
                         ->map(fn (string $option) => trim($option))
                         ->filter()
@@ -404,18 +417,10 @@ class Builder extends Component
                 }
 
                 $rules = [];
-                if (! empty($field['required'])) {
+                if (! empty($field['required']) && FieldTypes::collectsAnswer($field['type'])) {
                     $rules[] = 'required';
                 }
-                if ($field['type'] === 'email') {
-                    $rules[] = 'email';
-                }
-                if ($field['type'] === 'number') {
-                    $rules[] = 'numeric';
-                }
-                if ($field['type'] === 'date') {
-                    $rules[] = 'date';
-                }
+                $rules = array_merge($rules, FieldTypes::storedRules($field['type']));
 
                 // Every field is deleted and recreated on each save, so a DB id
                 // is never stable enough for a visibility rule to reference --
@@ -432,6 +437,7 @@ class Builder extends Component
                     'placeholder' => $field['placeholder'] ?: null,
                     'options' => [
                         'choices' => $options,
+                        'default_value' => $field['type'] === 'hidden' ? ($field['default_value'] ?? null) : null,
                         'helper_text' => $field['helper_text'] ?? null,
                         'conditional_logic' => $field['conditional_logic'] ?? null,
                         'field_key' => $key,
@@ -451,6 +457,7 @@ class Builder extends Component
         }));
         $this->hydrateState();
         $this->logoUpload = null;
+        $this->lastSavedAt = now()->format('H:i');
 
         // ->toOthers(): the saving client already has what it just wrote;
         // this only needs to reach other tabs with this form's builder
@@ -595,6 +602,7 @@ class Builder extends Component
                     'label' => $field->label,
                     'placeholder' => $field->placeholder,
                     'options' => is_array($choices) ? implode(', ', $choices) : '',
+                    'default_value' => $field->options['default_value'] ?? null,
                     'required' => in_array('required', $field->validation_rules ?? [], true),
                     'helper_text' => $field->options['helper_text'] ?? null,
                     'conditional_logic' => $field->options['conditional_logic'] ?? null,

@@ -18,6 +18,10 @@
         <a href="{{ $previewUrl }}" target="_blank" class="cb-btn cb-btn--quiet">Preview</a>
         <a href="{{ $aiSuggestionsUrl }}" class="cb-btn cb-btn--quiet">AI fields</a>
         <a href="{{ $aiAnalyticsUrl }}" class="cb-btn cb-btn--quiet">AI summary</a>
+        <span class="cb-serial" aria-live="polite" style="align-self:center;">
+            <span wire:loading wire:target="saveDraft, publish, autoSave">SAVING…</span>
+            @if ($lastSavedAt)<span wire:loading.remove wire:target="saveDraft, publish, autoSave">SAVED {{ $lastSavedAt }}</span>@endif
+        </span>
         <button wire:click="saveDraft" class="cb-btn">Save Draft</button>
         <button wire:click="publish" class="cb-btn cb-btn--primary">Publish</button>
     </div>
@@ -38,15 +42,17 @@
     <div class="cb-press">
         {{-- the type tray --}}
         <div>
-            <h3 class="cb-colhead">Type tray</h3>
-            <div class="cb-tray">
-                @foreach ($fieldTypes as $type)
-                    <button wire:click="addField('{{ $type }}')" type="button">
-                        <span class="cb-mark">{{ ['text' => 'Aa', 'email' => '@', 'number' => '#', 'textarea' => '¶', 'select' => '▾', 'radio' => '◉', 'checkbox' => '☑', 'date' => '31', 'file' => '↥'][$type] ?? '·' }}</span>
-                        {{ \Illuminate\Support\Str::headline($type) }}
-                    </button>
-                @endforeach
-            </div>
+            @foreach (\App\Support\FieldTypes::groups() as $groupLabel => $groupTypes)
+                <h3 class="cb-colhead" @if (! $loop->first) style="margin-top:16px;" @endif>{{ $groupLabel }}</h3>
+                <div class="cb-tray">
+                    @foreach ($groupTypes as $type)
+                        <button wire:click="addField('{{ $type }}')" type="button">
+                            <span class="cb-mark">{{ \App\Support\FieldTypes::mark($type) }}</span>
+                            {{ \App\Support\FieldTypes::label($type) }}
+                        </button>
+                    @endforeach
+                </div>
+            @endforeach
 
             @if (! empty($versions))
                 <h3 class="cb-colhead" style="margin-top:22px;">Earlier settings of this master</h3>
@@ -107,11 +113,17 @@
                         <div class="cb-fieldbox__tools">
                             <button type="button" wire:click="moveFieldUp({{ $index }})" aria-label="Move field up">↑</button>
                             <button type="button" wire:click="moveFieldDown({{ $index }})" aria-label="Move field down">↓</button>
-                            <button type="button" wire:click="openFieldSettings({{ $index }})" aria-label="Field settings">⋯</button>
+                            <button type="button" wire:click="duplicateField({{ $index }})" aria-label="Duplicate field">⧉</button>
+                            @if ($field['type'] !== \App\Support\FieldTypes::PAGE_BREAK)
+                                <button type="button" wire:click="openFieldSettings({{ $index }})" aria-label="Field settings">⋯</button>
+                            @endif
                             <button type="button" class="cb-danger" wire:click="removeField({{ $index }})" aria-label="Remove field">✕</button>
                         </div>
 
-                        <div style="display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px;margin-top:4px;">
+                        @if ($field['type'] === \App\Support\FieldTypes::PAGE_BREAK)
+                            <p style="margin:6px 90px 2px 0;font:600 11px var(--cb-mono);letter-spacing:.08em;color:var(--cb-muted);">⤵ PAGE BREAK — the published form starts a new page here</p>
+                        @else
+                        <div style="display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;margin-top:4px;">
                             <div>
                                 <label class="cb-label" for="fb-label-{{ $index }}">Label</label>
                                 <input id="fb-label-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.label" class="cb-input" />
@@ -120,31 +132,41 @@
                                 <label class="cb-label" for="fb-type-{{ $index }}">Type</label>
                                 <select id="fb-type-{{ $index }}" wire:model.live="fields.{{ $index }}.type" class="cb-select">
                                     @foreach ($fieldTypes as $type)
-                                        <option value="{{ $type }}">{{ \Illuminate\Support\Str::headline($type) }}</option>
+                                        <option value="{{ $type }}">{{ \App\Support\FieldTypes::label($type) }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
 
-                        <div class="cb-field" style="margin-top:12px;">
-                            <label class="cb-label" for="fb-placeholder-{{ $index }}">Placeholder</label>
-                            <input id="fb-placeholder-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.placeholder" class="cb-input" />
-                        </div>
+                        @if ($field['type'] === 'hidden')
+                            <div class="cb-field" style="margin-top:12px;">
+                                <label class="cb-label" for="fb-default-value-{{ $index }}">Value recorded with every copy</label>
+                                <input id="fb-default-value-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.default_value" class="cb-input" placeholder="e.g. campaign-november" />
+                            </div>
+                        @else
+                            <div class="cb-field" style="margin-top:12px;">
+                                <label class="cb-label" for="fb-placeholder-{{ $index }}">Placeholder</label>
+                                <input id="fb-placeholder-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.placeholder" class="cb-input" />
+                            </div>
+                        @endif
 
-                        @if (in_array($field['type'], ['select', 'radio', 'checkbox'], true))
+                        @if (\App\Support\FieldTypes::usesChoices($field['type']))
                             <div class="cb-field">
                                 <label class="cb-label" for="fb-options-comma-separated-{{ $index }}">Options (comma-separated)</label>
                                 <input id="fb-options-comma-separated-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.options" class="cb-input" />
                             </div>
                         @endif
 
-                        <label class="cb-check">
-                            <input type="checkbox" wire:model.live="fields.{{ $index }}.required" />
-                            <span>Mark as required</span>
-                        </label>
+                        @if ($field['type'] !== 'hidden')
+                            <label class="cb-check">
+                                <input type="checkbox" wire:model.live="fields.{{ $index }}.required" />
+                                <span>Mark as required</span>
+                            </label>
+                        @endif
 
                         @if (! empty($field['visibility_rule']['trigger_field_key']))
                             <p class="cb-hint">Shown only when another answer matches — set under ⋯.</p>
+                        @endif
                         @endif
                     </article>
                 @empty
@@ -368,7 +390,10 @@
                     <span class="cb-label">Show this field only if</span>
                     @php
                         $otherFields = collect($fields)->filter(
-                            fn ($f, $i) => $i !== $editingFieldIndex && ! empty($f['key'])
+                            fn ($f, $i) => $i !== $editingFieldIndex
+                                && ! empty($f['key'])
+                                && \App\Support\FieldTypes::collectsAnswer($f['type'] ?? 'text')
+                                && ($f['type'] ?? '') !== 'hidden'
                         )->values();
                     @endphp
                     <div style="display:grid;gap:8px;">

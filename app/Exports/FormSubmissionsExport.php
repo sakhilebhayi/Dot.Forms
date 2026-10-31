@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Form;
+use App\Support\FieldTypes;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -16,6 +17,7 @@ class FormSubmissionsExport implements FromArray, WithHeadings
     public function headings(): array
     {
         $labels = $this->form->fields
+            ->filter(fn ($field) => FieldTypes::collectsAnswer($field->type))
             ->whereIn('id', $this->fieldIds)
             ->pluck('label')
             ->values()
@@ -39,7 +41,7 @@ class FormSubmissionsExport implements FromArray, WithHeadings
                 optional($submission->submitted_at)?->toDateTimeString(),
             ];
 
-            foreach ($this->form->fields->whereIn('id', $this->fieldIds) as $field) {
+            foreach ($this->form->fields->filter(fn ($f) => FieldTypes::collectsAnswer($f->type))->whereIn('id', $this->fieldIds) as $field) {
                 $value = $submission->data[$field->id] ?? null;
 
                 if (is_bool($value)) {

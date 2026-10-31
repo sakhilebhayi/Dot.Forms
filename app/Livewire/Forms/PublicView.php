@@ -9,9 +9,12 @@ use App\Notifications\NewFormSubmissionNotification;
 use App\Services\FormFieldVisibilityEvaluator;
 use App\Services\FormSubmissionIntegrationDispatcher;
 use App\Services\PublicFormCache;
+use App\Support\FieldTypes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -137,6 +140,26 @@ class PublicView extends Component
                 continue;
             }
 
+            if (! FieldTypes::collectsAnswer($field->type)) {
+                unset($submissionData[$field->id]);
+
+                continue;
+            }
+
+            if ($field->type === 'hidden') {
+                // The respondent never sees or edits this: the master's set
+                // value is recorded, not whatever the client sent.
+                $submissionData[$field->id] = $field->options['default_value'] ?? null;
+
+                continue;
+            }
+
+            if ($field->type === 'signature' && filled($submissionData[$field->id] ?? null)) {
+                $submissionData[$field->id] = $this->storeSignature((string) $submissionData[$field->id]);
+
+                continue;
+            }
+
             if ($field->type === 'file' && isset($this->uploads[$field->id])) {
                 $submissionData[$field->id] = $this->uploads[$field->id]->store(
                     'forms/'.$this->form->id,
@@ -194,33 +217,45 @@ class PublicView extends Component
                 continue;
             }
 
-            $fieldRules = [];
-            $storedRules = is_array($field->validation_rules) ? $field->validation_rules : [];
-
-            if (in_array('required', $storedRules, true)) {
-                $fieldRules[] = 'required';
-            } else {
-                $fieldRules[] = 'nullable';
-            }
-
-            if ($field->type === 'email') {
-                $fieldRules[] = 'email';
-            }
-            if ($field->type === 'number') {
-                $fieldRules[] = 'numeric';
-            }
-            if ($field->type === 'date') {
-                $fieldRules[] = 'date';
+            if (! FieldTypes::collectsAnswer($field->type)) {
+                continue;
             }
 
             if ($field->type === 'file') {
-                $rules['uploads.'.$field->id] = array_merge($fieldRules, ['file', 'max:10240']);
-            } else {
-                $rules['answers.'.$field->id] = $fieldRules;
+                $required = in_array('required', $field->validation_rules ?? [], true);
+                $rules['uploads.'.$field->id] = [$required ? 'required' : 'nullable', 'file', 'max:10240'];
+
+                continue;
+            }
+
+            // Every other type's rules live in the one registry the builder
+            // stores from, so the two can never drift apart (R-30 Phase 2).
+            foreach (FieldTypes::publicRules($field) as $key => $fieldRules) {
+                $rules[$key] = $fieldRules;
             }
         }
 
         return $rules;
+    }
+
+    /**
+     * The drawn signature arrives as a validated PNG data URL; it is decoded and
+     * kept as a real image file beside the form's uploads, and the stored path is
+     * what the submission records — never megabytes of base64 in the data column.
+     */
+    protected function storeSignature(string $dataUrl): ?string
+    {
+        $binary = base64_decode(substr($dataUrl, strlen('data:image/png;base64,')), true);
+
+        if ($binary === false || $binary === '' || substr($binary, 1, 3) !== 'PNG') {
+            return null;
+        }
+
+        $path = 'forms/'.$this->form->id.'/signatures/'.Str::uuid().'.png';
+
+        Storage::disk(config('dotforms.forms.upload_disk', 'public'))->put($path, $binary);
+
+        return $path;
     }
 
     /**
