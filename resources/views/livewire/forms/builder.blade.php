@@ -128,9 +128,17 @@
                                     dragging = null;
                                 "
                                 wire:click="selectField({{ $index }})"
-                                role="button" tabindex="0" @keydown.enter="$wire.selectField({{ $index }})"
+                                role="button" tabindex="0" @keydown.enter.self="$wire.selectField({{ $index }})"
                                 aria-label="Edit: {{ $field['label'] ?: \App\Support\FieldTypes::label($field['type']) }}"
                             >
+                                @if ($editingFieldIndex === $index)
+                                    <div class="cb-el__tools" role="toolbar" aria-label="Element actions">
+                                        <button type="button" wire:click.stop="moveFieldUp({{ $index }})" aria-label="Move up" @if ($index === 0) disabled @endif>↑</button>
+                                        <button type="button" wire:click.stop="moveFieldDown({{ $index }})" aria-label="Move down" @if ($index === count($fields) - 1) disabled @endif>↓</button>
+                                        <button type="button" wire:click.stop="duplicateField({{ $index }})" aria-label="Duplicate">⧉</button>
+                                        <button type="button" class="cb-danger" wire:click.stop="removeField({{ $index }})" aria-label="Remove">✕</button>
+                                    </div>
+                                @endif
                                 @include('livewire.forms.partials.element-canvas', ['field' => $field, 'qNo' => \App\Support\FieldTypes::collectsAnswer($field['type']) ? ++$qNo : null])
                             </div>
                         @empty
@@ -145,9 +153,13 @@
             </div>
         </div>
 
-        <div class="cb-props">
+        <div class="cb-props @if ($editingFieldIndex !== null) cb-props--editing @endif">
             @if ($editingFieldIndex !== null && isset($fields[$editingFieldIndex]))
                 @php $sel = $fields[$editingFieldIndex]; @endphp
+                {{-- Keyed by the element, not the index: when the selection moves or
+                     shifts, every input below re-renders with that element's values
+                     instead of being morphed in place with stale ones. --}}
+                <div wire:key="props-{{ $sel['key'] }}">
                 <div style="display:flex;align-items:baseline;gap:8px;">
                     <h3 class="cb-colhead" style="margin:0 0 10px;">Selected element</h3>
                     <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="margin-left:auto;" wire:click="deselectField">Done</button>
@@ -326,6 +338,7 @@
                 <div style="display:flex;gap:6px;border-top:1px solid var(--cb-rule);padding-top:12px;margin:4px 0 16px;">
                     <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="duplicateField({{ $editingFieldIndex }})">Duplicate</button>
                     <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="margin-left:auto;color:var(--cb-stamp-red)" wire:click="removeField({{ $editingFieldIndex }})">Remove</button>
+                </div>
                 </div>
             @else
                 <p class="cb-hint" style="margin:0 0 16px;">Select an element on the sheet to edit it — or add one from the type tray.</p>

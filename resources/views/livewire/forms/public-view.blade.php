@@ -106,7 +106,7 @@
         </div>
     @endif
 
-    <div @if ($isLanding && ! $submitted) x-show="opened" @if ($openedInit === 'false') x-cloak @endif @endif>
+    <div @if ($isLanding && ! $submitted) class="cb-pagein" x-show="opened" @if ($openedInit === 'false') x-cloak @endif @endif>
     @if ($logoUrl)
         <img src="{{ $logoUrl }}" alt="{{ $form->title }} logo" style="height:40px;width:auto;margin-bottom:18px;">
     @endif
@@ -170,7 +170,7 @@
             @if ($isConversational)
                 @foreach ($renderFields as $field)
                     @if (FieldTypes::isDisplay($field->type))
-                        <div x-show="step === {{ $loop->index }}" x-cloak wire:key="q-{{ $field->id }}">
+                        <div class="cb-pagein" x-show="step === {{ $loop->index }}" x-cloak wire:key="q-{{ $field->id }}">
                             @include('livewire.forms.partials.element-display', ['field' => $field])
                             <div style="display:flex;gap:8px;margin:12px 0 18px;">
                                 @if (! $loop->first)<button type="button" class="cb-btn cb-btn--sm" @click="step = Math.max(step - 1, 0)">← Back</button>@endif
@@ -179,7 +179,7 @@
                         </div>
                         @continue
                     @endif
-                    <div class="cb-q" x-show="step === {{ $loop->index }}" x-cloak wire:key="q-{{ $field->id }}">
+                    <div class="cb-q cb-pagein" x-show="step === {{ $loop->index }}" x-cloak wire:key="q-{{ $field->id }}">
                         <span class="cb-q__no">{{ str_pad((string) ($loop->index + 1), 2, '0', STR_PAD_LEFT) }}</span>
                         @include('livewire.forms.partials.field-input', ['field' => $field])
 
@@ -195,7 +195,7 @@
                 @endforeach
             @else
                 @foreach ($pages as $pageIndex => $pageFields)
-                    <div @if ($pageCount > 1) x-show="showAll || page === {{ $pageIndex }}" x-cloak @endif wire:key="page-{{ $pageIndex }}">
+                    <div @if ($pageCount > 1) class="cb-pagein" x-show="showAll || page === {{ $pageIndex }}" x-cloak @endif wire:key="page-{{ $pageIndex }}">
                         @foreach ($pageFields as $field)
                             @if (FieldTypes::isDisplay($field->type))
                                 <div wire:key="q-{{ $field->id }}">
@@ -232,7 +232,10 @@
 
             <div class="cb-doc__foot"
                 x-bind:style="(conversational && step < total - 1) || (!conversational && !showAll && pages > 1 && page < pages - 1) ? 'display:none' : ''">
-                <button type="submit" class="cb-btn cb-btn--primary">Submit</button>
+                <button type="submit" class="cb-btn cb-btn--primary" wire:loading.attr="disabled" wire:target="submit">
+                    <span wire:loading.remove wire:target="submit">Submit</span>
+                    <span wire:loading wire:target="submit">Lodging…</span>
+                </button>
                 <small>Your answers go to {{ $form->team?->name ?? 'the form owner' }} only.</small>
             </div>
         </form>

@@ -478,3 +478,65 @@ body.cb {
 @media (max-width: 760px) {
     .cb-cover__img { width: calc(100% + 36px); margin: -26px -18px 20px; }
 }
+
+/* ---------------------------------------------------------------- R-31 phase 4: motion + mobile editing */
+/* The page turn: one entrance for steps, pages and the opened document. The animation
+   replays whenever the element is shown again (display toggles restart it). */
+@keyframes cb-page-in { from { opacity: 0; transform: translateY(6px); } }
+.cb-pagein { animation: cb-page-in 200ms ease-out backwards; }
+/* a new element lands on the canvas the same way */
+.cb-doc--canvas .cb-el { animation: cb-page-in 180ms ease-out backwards; }
+/* settings groups unfold, buttons press */
+.cb-props details[open] > div { animation: cb-page-in 160ms ease-out; }
+.cb-btn:active:not(:disabled) { transform: translateY(1px); }
+.cb-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Tools on the selected canvas element: move, duplicate, remove — the touch and
+   keyboard path that drag-and-drop never was. */
+.cb-el__tools { position: absolute; top: -14px; right: 8px; display: flex; gap: 4px; z-index: 5; animation: cb-page-in 140ms ease-out; }
+.cb-el__tools button {
+    height: 27px; min-width: 31px; padding: 0 6px; border: 1px solid var(--cb-boxline);
+    background: var(--cb-sheet); color: var(--cb-muted); font: 600 13px var(--cb-mono);
+    border-radius: 2px; cursor: pointer; line-height: 1;
+}
+.cb-el__tools button:hover:not(:disabled) { color: var(--cb-ink); border-color: var(--cb-ink); }
+.cb-el__tools button:disabled { opacity: 0.35; cursor: default; }
+.cb-el__tools .cb-danger:hover:not(:disabled) { color: var(--cb-stamp-red); border-color: var(--cb-stamp-red); }
+
+/* Mobile editing (R-31 Phase 4): the sheet comes first, the selected element's
+   settings rise as a bottom sheet, the type tray waits at the end. */
+@media (max-width: 980px) {
+    .cb-press--canvas > div:nth-child(1) { order: 3; }
+    .cb-press--canvas > div:nth-child(2) { order: 1; }
+    .cb-press--canvas > .cb-props { order: 2; }
+    .cb-props--editing {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+        max-height: 62vh; overflow-y: auto; overscroll-behavior: contain;
+        border-radius: 10px 10px 0 0; border: 1px solid var(--cb-rule); border-bottom: 0;
+        box-shadow: 0 -8px 28px var(--cb-shadow);
+        animation: cb-sheet-up 220ms ease-out;
+    }
+    .cb-tray button, .cb-canvasbar__widths button { min-height: 42px; }
+    .cb-el__tools button { height: 36px; min-width: 40px; font-size: 15px; }
+}
+@keyframes cb-sheet-up { from { transform: translateY(24px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .cb-pagein, .cb-doc--canvas .cb-el, .cb-props details[open] > div,
+    .cb-el__tools, .cb-props--editing { animation: none; }
+    .cb-btn:active:not(:disabled) { transform: none; }
+}
+
+/* Mobile page head (R-31 Phase 4): the title takes its own row, every action sits in
+   a two-column grid of equal buttons, and the save status gets a quiet row of its own —
+   no more buttons floating to whichever edge the wrap left them. */
+@media (max-width: 760px) {
+    .cb-pagehead { align-items: stretch; }
+    .cb-pagehead > div:first-child { flex-basis: 100%; }
+    .cb-pagehead .cb-btn:first-of-type { margin-left: 0; }
+    .cb-pagehead > .cb-btn {
+        flex: 1 1 calc(50% - 5px); min-height: 42px;
+        display: inline-flex; align-items: center; justify-content: center; text-align: center;
+    }
+    .cb-pagehead > .cb-serial { flex-basis: 100%; }
+}

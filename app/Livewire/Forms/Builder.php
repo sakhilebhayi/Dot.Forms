@@ -209,6 +209,14 @@ class Builder extends Component
 
         unset($this->fields[$index]);
         $this->fields = array_values($this->fields);
+
+        // The properties panel must never silently show a different element
+        // than the one the creator had open (R-31 Phase 4).
+        if ($this->editingFieldIndex === $index) {
+            $this->editingFieldIndex = null;
+        } elseif ($this->editingFieldIndex !== null && $this->editingFieldIndex > $index) {
+            $this->editingFieldIndex--;
+        }
     }
 
     public function moveFieldUp(int $index): void
@@ -219,6 +227,13 @@ class Builder extends Component
 
         [$this->fields[$index - 1], $this->fields[$index]] = [$this->fields[$index], $this->fields[$index - 1]];
         $this->fields = array_values($this->fields);
+
+        // Selection follows the element it was on, whichever of the two moved.
+        if ($this->editingFieldIndex === $index) {
+            $this->editingFieldIndex = $index - 1;
+        } elseif ($this->editingFieldIndex === $index - 1) {
+            $this->editingFieldIndex = $index;
+        }
     }
 
     public function moveFieldDown(int $index): void
@@ -229,6 +244,12 @@ class Builder extends Component
 
         [$this->fields[$index + 1], $this->fields[$index]] = [$this->fields[$index], $this->fields[$index + 1]];
         $this->fields = array_values($this->fields);
+
+        if ($this->editingFieldIndex === $index) {
+            $this->editingFieldIndex = $index + 1;
+        } elseif ($this->editingFieldIndex === $index + 1) {
+            $this->editingFieldIndex = $index;
+        }
     }
 
     /**
