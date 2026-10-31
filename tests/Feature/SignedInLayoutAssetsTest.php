@@ -47,7 +47,7 @@ class SignedInLayoutAssetsTest extends TestCase
     {
         $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
 
-        $this->assertStringContainsString("@vite(['resources/css/signed-in.css', 'resources/js/app.js'])", $layout);
+        $this->assertStringContainsString("@vite(['resources/css/signed-in.css', 'resources/css/carbon.css', 'resources/js/app.js'])", $layout);
         $this->assertStringNotContainsString('cdn.tailwindcss.com', $layout);
         $this->assertStringNotContainsString('unpkg.com', $layout);
         $this->assertStringNotContainsString('alpinejs', $layout);

@@ -1,36 +1,27 @@
-{{-- Livewire allows exactly one root element per component. The page layout
-     comes from the component's #[Layout] attribute, so this view must not
-     wrap itself in <x-app-layout>; the heading lives inside the root. --}}
+{{-- Livewire allows exactly one root element per component; the layout comes
+     from the component's #[Layout] attribute. --}}
 <div>
-    <h2 class="font-semibold text-xl text-gray-800 leading-tight">Team Analytics</h2>
+    <div class="cb-pagehead">
+        <div>
+            <h1 class="cb-h1">Team Analytics</h1>
+            <p class="cb-sub">The tallies across every form in the book.</p>
+        </div>
+    </div>
 
-    <div class="py-8">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-            <div class="grid gap-4 md:grid-cols-3">
-                <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Submissions</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['total_submissions'] }}</p>
-                </div>
-                <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Completion Rate</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['completion_rate'] }}%</p>
-                </div>
-                <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Avg Time To Complete</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $stats['avg_completion_seconds'] }}s</p>
-                </div>
-            </div>
+    <div class="cb-tallies">
+        <div class="cb-tally"><div class="cb-tally__lbl">Total Submissions</div><div class="cb-tally__v">{{ $stats['total_submissions'] }}</div></div>
+        <div class="cb-tally"><div class="cb-tally__lbl">Completion Rate</div><div class="cb-tally__v">{{ $stats['completion_rate'] }}<small>%</small></div></div>
+        <div class="cb-tally"><div class="cb-tally__lbl">Avg Time To Complete</div><div class="cb-tally__v">{{ $stats['avg_completion_seconds'] }}<small>s</small></div></div>
+    </div>
 
-            <div class="grid gap-6 lg:grid-cols-2">
-                <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Submissions By Day</h3>
-                    <canvas id="submissionsChart" class="mt-4"></canvas>
-                </div>
-                <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Top Forms</h3>
-                    <canvas id="formsChart" class="mt-4"></canvas>
-                </div>
-            </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;">
+        <div class="cb-tally" style="min-height:300px;">
+            <div class="cb-tally__lbl" style="margin-bottom:10px;">Submissions By Day</div>
+            <div style="height:240px;"><canvas id="submissionsChart"></canvas></div>
+        </div>
+        <div class="cb-tally" style="min-height:300px;">
+            <div class="cb-tally__lbl" style="margin-bottom:10px;">Top Forms</div>
+            <div style="height:240px;"><canvas id="formsChart"></canvas></div>
         </div>
     </div>
 
@@ -38,6 +29,8 @@
     <script type="application/json" id="forms-chart-data">{{ json_encode(['labels' => $formLabels, 'data' => $formData]) }}</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // One chart hue (carbon blue) — the system's rule: colour is data, not decoration.
+        const carbon = '#2b4a9e';
         const submissionCtx = document.getElementById('submissionsChart');
         const formsCtx = document.getElementById('formsChart');
         const submissionPayload = JSON.parse(document.getElementById('submission-chart-data').textContent || '{"labels":[],"data":[]}');
@@ -48,38 +41,20 @@
                 type: 'bar',
                 data: {
                     labels: submissionPayload.labels,
-                    datasets: [{
-                        label: 'Submissions',
-                        data: submissionPayload.data,
-                        backgroundColor: '#4f46e5'
-                    }]
+                    datasets: [{ label: 'Submissions', data: submissionPayload.data, backgroundColor: carbon }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
             });
         }
 
         if (formsCtx) {
             new Chart(formsCtx, {
-                type: 'pie',
+                type: 'bar',
                 data: {
                     labels: formsPayload.labels,
-                    datasets: [{
-                        data: formsPayload.data,
-                        backgroundColor: ['#4f46e5', '#0ea5e9', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6']
-                    }]
+                    datasets: [{ label: 'Submissions', data: formsPayload.data, backgroundColor: carbon }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
             });
         }
     </script>
