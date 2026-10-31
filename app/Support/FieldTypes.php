@@ -25,11 +25,13 @@ class FieldTypes
         // numbers
         'number', 'currency', 'percentage', 'rating', 'scale',
         // choices
-        'select', 'multiselect', 'radio', 'yesno', 'checkbox', 'consent',
+        'select', 'multiselect', 'radio', 'yesno', 'checkbox', 'consent', 'matrix', 'ranking',
         // date and time
         'date', 'time', 'datetime',
         // attachments
         'file', 'signature',
+        // composites and computation
+        'address', 'calculated',
         // content (collects nothing; tells the story between questions)
         'heading', 'text_block', 'image', 'video', 'divider',
         // other
@@ -37,7 +39,7 @@ class FieldTypes
     ];
 
     /** Types whose options come from the builder's comma-separated list. */
-    public const CHOICE_TYPES = ['select', 'multiselect', 'radio'];
+    public const CHOICE_TYPES = ['select', 'multiselect', 'radio', 'matrix', 'ranking'];
 
     /** @return array<string, array<int, string>> tray groups, label => types */
     public static function groups(): array
@@ -45,9 +47,10 @@ class FieldTypes
         return [
             'Text & contact' => ['text', 'textarea', 'email', 'phone', 'url'],
             'Numbers' => ['number', 'currency', 'percentage', 'rating', 'scale'],
-            'Choices' => ['select', 'multiselect', 'radio', 'yesno', 'checkbox', 'consent'],
+            'Choices' => ['select', 'multiselect', 'radio', 'yesno', 'checkbox', 'consent', 'matrix', 'ranking'],
             'Date & time' => ['date', 'time', 'datetime'],
             'Attachments' => ['file', 'signature'],
+            'Business' => ['address', 'calculated'],
             'Content' => ['heading', 'text_block', 'image', 'video', 'divider'],
             'Structure' => ['country', 'hidden', self::PAGE_BREAK],
         ];
@@ -72,6 +75,10 @@ class FieldTypes
             'yesno' => 'Yes / No',
             'checkbox' => 'Checkbox',
             'consent' => 'Consent',
+            'matrix' => 'Matrix (rows × choices)',
+            'ranking' => 'Ranking',
+            'address' => 'Address',
+            'calculated' => 'Calculated value',
             'date' => 'Date',
             'time' => 'Time',
             'datetime' => 'Date and time',
@@ -96,7 +103,7 @@ class FieldTypes
             'text' => 'Aa', 'textarea' => '¶', 'email' => '@', 'phone' => '✆', 'url' => '://',
             'number' => '#', 'currency' => 'R', 'percentage' => '%', 'rating' => '★', 'scale' => '10',
             'select' => '▾', 'multiselect' => '☑☑', 'radio' => '◉', 'yesno' => 'Y/N',
-            'checkbox' => '☑', 'consent' => '§',
+            'checkbox' => '☑', 'consent' => '§', 'matrix' => '▦', 'ranking' => '1·2', 'address' => '⌂', 'calculated' => '∑',
             'date' => '31', 'time' => '⏱', 'datetime' => '31⏱',
             'file' => '↥', 'signature' => '✎',
             'country' => 'ZA', 'hidden' => '·', self::PAGE_BREAK => '⤵',
@@ -160,7 +167,25 @@ class FieldTypes
         $choices = array_map('strval', $field->options['choices'] ?? []);
         $choiceRule = 'in:'.implode(',', str_replace(',', '', $choices));
 
+        $rows = array_map('strval', $field->options['rows'] ?? []);
+
         return match ($field->type) {
+            'matrix' => array_merge(
+                ['answers.'.$id => $required ? ['required', 'array', 'size:'.max(1, count($rows))] : ['nullable', 'array']],
+                ['answers.'.$id.'.*' => $choices === [] ? ['string', 'max:255'] : [$choiceRule]],
+            ),
+            'ranking' => [
+                'answers.'.$id => $required ? ['required', 'array', 'size:'.max(1, count($choices))] : ['nullable', 'array'],
+                'answers.'.$id.'.*' => array_merge(['distinct'], $choices === [] ? ['string', 'max:255'] : [$choiceRule]),
+            ],
+            'address' => [
+                'answers.'.$id => array_merge($base, ['array']),
+                'answers.'.$id.'.street' => [$required ? 'required' : 'nullable', 'string', 'max:255'],
+                'answers.'.$id.'.city' => [$required ? 'required' : 'nullable', 'string', 'max:255'],
+                'answers.'.$id.'.province' => ['nullable', 'string', 'max:255'],
+                'answers.'.$id.'.code' => ['nullable', 'string', 'max:20'],
+            ],
+            'calculated' => [], // computed server-side at submit; never user input
             'multiselect' => [
                 'answers.'.$id => array_merge($base, ['array']),
                 'answers.'.$id.'.*' => $choices === [] ? ['string', 'max:255'] : [$choiceRule],

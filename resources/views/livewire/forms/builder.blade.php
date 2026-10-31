@@ -23,8 +23,12 @@
             <span wire:loading wire:target="saveDraft, publish, autoSave">SAVING…</span>
             @if ($lastSavedAt)<span wire:loading.remove wire:target="saveDraft, publish, autoSave">SAVED {{ $lastSavedAt }}</span>@endif
         </span>
-        <button wire:click="saveDraft" class="cb-btn">Save Draft</button>
-        <button wire:click="publish" class="cb-btn cb-btn--primary">Publish</button>
+        <button wire:click="saveDraft" class="cb-btn">{{ $form->is_published ? 'Save' : 'Save Draft' }}</button>
+        @if ($form->is_published)
+            <button wire:click="unpublish" wire:confirm="Take this form out of use? The public link stops serving it until you publish again." class="cb-btn cb-btn--quiet" style="color:var(--cb-stamp-red)">Unpublish</button>
+        @else
+            <button wire:click="publish" class="cb-btn cb-btn--primary">Publish</button>
+        @endif
     </div>
 
     @if (session('status'))
@@ -205,8 +209,34 @@
                         @endif
                         @if (\App\Support\FieldTypes::usesChoices($sel['type']))
                             <div class="cb-field">
-                                <label class="cb-label" for="el-options">Options (comma-separated)</label>
+                                <label class="cb-label" for="el-options">{{ ['matrix' => 'Columns (comma-separated)', 'ranking' => 'Items to rank (comma-separated)'][$sel['type']] ?? 'Options (comma-separated)' }}</label>
                                 <input id="el-options" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.options" class="cb-input" />
+                            </div>
+                        @endif
+                        @if ($sel['type'] === 'matrix')
+                            <div class="cb-field">
+                                <label class="cb-label" for="el-rows">Rows (comma-separated)</label>
+                                <input id="el-rows" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.rows" class="cb-input" placeholder="Housekeeping, PPE, Equipment" />
+                            </div>
+                        @endif
+                        @if ($sel['type'] === 'calculated')
+                            <div class="cb-field">
+                                <label class="cb-label" for="el-formula">Formula</label>
+                                <textarea id="el-formula" rows="2" wire:model.live="fields.{{ $editingFieldIndex }}.formula" class="cb-textarea" style="font-family:var(--cb-mono);font-size:12px;" placeholder="{quantity} * {unit-price} * 1.15"></textarea>
+                                @error('fields.' . $editingFieldIndex . '.formula')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                                <p class="cb-hint">+, −, ×, ÷ and brackets over the numeric fields below. Computed when a copy is submitted.</p>
+                                @php
+                                    $numericRefs = collect($fields)->filter(fn ($f, $i) => $i !== $editingFieldIndex && in_array($f['type'], ['number', 'currency', 'percentage', 'rating', 'scale'], true));
+                                @endphp
+                                @if ($numericRefs->isNotEmpty())
+                                    <div style="display:grid;gap:3px;margin-top:6px;">
+                                        @foreach ($numericRefs as $ref)
+                                            <span class="cb-hint" style="margin:0;"><span class="cb-serial" style="font-size:11px;">{{ '{' . $ref['key'] . '}' }}</span> = {{ $ref['label'] ?: 'Untitled' }}</span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="cb-hint">Add a number, currency, percentage, rating or scale field to reference it here.</p>
+                                @endif
                             </div>
                         @endif
                         @if ($sel['type'] !== 'hidden')

@@ -109,6 +109,8 @@ class Builder extends Component
             'body' => null,
             'video_url' => null,
             'image_path' => null,
+            'rows' => '',
+            'formula' => null,
             'required' => false,
             'helper_text' => null,
             'conditional_logic' => null,
@@ -266,9 +268,19 @@ class Builder extends Component
         $this->editingFieldIndex = null;
     }
 
+    /**
+     * Save keeps the publish state (R-31): before this, saving a LIVE form silently
+     * took it offline. Only Publish/Unpublish changes visibility now.
+     */
     public function saveDraft(): void
     {
         $this->persist();
+
+        if ($this->form->is_published) {
+            session()->flash('status', 'Saved. The form stays in use.');
+
+            return;
+        }
 
         $this->form->update([
             'is_published' => false,
@@ -277,6 +289,18 @@ class Builder extends Component
         ]);
 
         session()->flash('status', 'Draft saved.');
+    }
+
+    public function unpublish(): void
+    {
+        $this->persist();
+
+        $this->form->update([
+            'is_published' => false,
+            'published_at' => null,
+        ]);
+
+        session()->flash('status', 'Taken out of use — the public link no longer serves this form.');
     }
 
     public function publish(): void
@@ -461,6 +485,8 @@ class Builder extends Component
             'fields.*.options' => ['nullable', 'string'],
             'fields.*.default_value' => ['nullable', 'string', 'max:1000'],
             'fields.*.body' => ['nullable', 'string', 'max:5000'],
+            'fields.*.rows' => ['nullable', 'string', 'max:2000'],
+            'fields.*.formula' => ['nullable', 'string', 'max:500'],
             'fields.*.video_url' => ['nullable', 'url', 'max:500'],
             'fields.*.image_path' => ['nullable', 'string', 'max:500'],
             'elementImages.*' => ['nullable', 'image', 'max:5120'],
@@ -601,6 +627,10 @@ class Builder extends Component
                         'choices' => $options,
                         'default_value' => $field['type'] === 'hidden' ? ($field['default_value'] ?? null) : null,
                         'body' => $field['type'] === 'text_block' ? ($field['body'] ?? null) : null,
+                        'rows' => $field['type'] === 'matrix'
+                            ? collect(explode(',', (string) ($field['rows'] ?? '')))->map(fn ($r) => trim($r))->filter()->values()->all()
+                            : null,
+                        'formula' => $field['type'] === 'calculated' ? ($field['formula'] ?? null) : null,
                         'video_url' => $field['type'] === 'video' ? ($field['video_url'] ?? null) : null,
                         'video' => $video,
                         'image_path' => $imagePath,
@@ -783,6 +813,8 @@ class Builder extends Component
                     'body' => $field->options['body'] ?? null,
                     'video_url' => $field->options['video_url'] ?? null,
                     'image_path' => $field->options['image_path'] ?? null,
+                    'rows' => is_array($field->options['rows'] ?? null) ? implode(', ', $field->options['rows']) : '',
+                    'formula' => $field->options['formula'] ?? null,
                     'required' => in_array('required', $field->validation_rules ?? [], true),
                     'helper_text' => $field->options['helper_text'] ?? null,
                     'conditional_logic' => $field->options['conditional_logic'] ?? null,

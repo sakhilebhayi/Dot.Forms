@@ -243,7 +243,11 @@ class Submissions extends Component
         }
 
         if (is_array($value)) {
-            return implode(', ', array_map('strval', $value));
+            if (array_is_list($value)) {
+                return implode(', ', array_map('strval', $value));
+            }
+
+            return collect($value)->map(fn ($v, $k) => $k.': '.$v)->implode('; ');
         }
 
         return (string) ($value ?? '');
