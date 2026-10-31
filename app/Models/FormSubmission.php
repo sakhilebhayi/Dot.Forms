@@ -9,6 +9,14 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property Carbon|null $submitted_at
+ * @property Carbon|null $decided_at
+ * @property string|null $decision
+ * @property string|null $client_token
+ * @property int|null $quiz_score
+ * @property int|null $quiz_max_score
+ * @property array<int|string, mixed>|null $data
+ * @property-read User|null $decider
+ * @property-read User|null $assignee
  */
 class FormSubmission extends Model
 {
@@ -42,11 +50,23 @@ class FormSubmission extends Model
         'status',
         'assigned_to',
         'internal_note',
+        'client_token',
+        'decision',
+        'decided_by',
+        'decided_at',
     ];
+
+    /** The desk's approval stamp outcomes (R-30 leftovers). */
+    public const DECISIONS = ['approved', 'rejected'];
 
     public function assignee()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function decider()
+    {
+        return $this->belongsTo(User::class, 'decided_by');
     }
 
     /**
@@ -59,6 +79,7 @@ class FormSubmission extends Model
         return [
             'data' => 'array',
             'submitted_at' => 'datetime',
+            'decided_at' => 'datetime',
             'completion_seconds' => 'integer',
             'quiz_score' => 'integer',
             'quiz_max_score' => 'integer',

@@ -78,6 +78,29 @@
     </script>
 @endif
 
+@if (! $this->passwordSatisfied())
+    {{-- The gate (R-30 publishing controls): nothing of the document renders until the
+         password the owner set is given. Enforced again server-side at submit. --}}
+    <div class="cb-doc cb-doc--{{ $preset }}" style="{{ $docStyle }}">
+        <div class="cb-doc__head">
+            <h1>{{ $form->title }}</h1>
+            <span class="cb-serial">{{ $serial }}</span>
+        </div>
+        <p class="cb-doc__meta">{{ $form->team?->name ?? config('app.name') }}</p>
+
+        <form wire:submit="unlock">
+            <div class="cb-q cb-pagein" style="max-width: 430px;">
+                <label for="form-password">This form is protected</label>
+                <p class="cb-help">Enter the password its owner gave you.</p>
+                <input id="form-password" type="password" wire:model="accessPassword" autocomplete="off">
+                @error('accessPassword')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+            </div>
+            <div class="cb-doc__foot">
+                <button type="submit" class="cb-btn cb-btn--primary" wire:loading.attr="disabled" wire:target="unlock">Open the form</button>
+            </div>
+        </form>
+    </div>
+@else
 {{-- Known limitation: x-data's `total` is only evaluated once on init, so if
      conversational_mode and conditional logic are both used together, a mid-fill
      visibility change won't retarget Alpine's step bounds until the page reloads.
@@ -242,3 +265,67 @@
     @endif
     </div>
 </div>
+@endif
+
+@if (! $isPreview)
+    @script
+    <script>
+    // R-30 leftovers: draft safety and the funnel's "started" mark. The draft lives
+    // only in this browser (localStorage), restores on reload, skips anything large
+    // (a drawn signature), and is torn up once the copy is lodged. Storage can be
+    // absent or full, so every touch is wrapped. The IIFE matters: Livewire hands
+    // this body to Alpine's expression evaluator, where a bare `const` cannot parse.
+    (() => {
+        const draftKey = 'dotforms-draft-' + @js($form->slug);
+
+        try {
+            const saved = JSON.parse(localStorage.getItem(draftKey) || 'null');
+
+            if (saved && ! $wire.submitted) {
+                for (const [id, value] of Object.entries(saved)) {
+                    const current = $wire.answers[id];
+
+                    if (value !== null && value !== '' && (current === null || current === '' || current === undefined)) {
+                        $wire.set('answers.' + id, value, false);
+                    }
+                }
+            }
+        } catch (e) {}
+
+        let draftTimer = null;
+        let startedPinged = false;
+
+        const saveDraft = () => {
+            try {
+                if ($wire.submitted) return;
+
+                const snapshot = {};
+
+                for (const [id, value] of Object.entries($wire.answers)) {
+                    if (typeof value === 'string' && value.length > 2000) continue;
+                    snapshot[id] = value;
+                }
+
+                localStorage.setItem(draftKey, JSON.stringify(snapshot));
+            } catch (e) {}
+        };
+
+        document.addEventListener('input', () => {
+            if (! startedPinged) {
+                startedPinged = true;
+                $wire.markStarted();
+            }
+
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(saveDraft, 600);
+        });
+
+        $wire.$watch('submitted', (value) => {
+            if (value) {
+                try { localStorage.removeItem(draftKey); } catch (e) {}
+            }
+        });
+    })();
+    </script>
+    @endscript
+@endif

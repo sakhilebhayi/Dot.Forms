@@ -60,6 +60,28 @@ class Submissions extends Component
         }
     }
 
+    /**
+     * The approval stamp (R-30 leftovers): APPROVED or REJECTED on a copy, with who
+     * decided and when; null lifts the stamp. One decision per copy — a chain of
+     * stages is not built and not claimed.
+     */
+    public function decide(int $submissionId, ?string $decision): void
+    {
+        if ($decision !== null && ! in_array($decision, FormSubmission::DECISIONS, true)) {
+            return;
+        }
+
+        $this->form->submissions()->whereKey($submissionId)->update([
+            'decision' => $decision,
+            'decided_by' => $decision === null ? null : Auth::id(),
+            'decided_at' => $decision === null ? null : now(),
+        ]);
+
+        if ($this->activeSubmission?->id === $submissionId) {
+            $this->activeSubmission->refresh();
+        }
+    }
+
     public function assign(int $submissionId, ?int $userId): void
     {
         // Only someone on this team may hold a copy.
@@ -279,7 +301,7 @@ class Submissions extends Component
     {
         return $this->form
             ->submissions()
-            ->with('assignee')
+            ->with('assignee', 'decider')
             ->when($this->search !== '', function ($query): void {
                 $query->whereRaw('LOWER(data) like ?', ['%'.strtolower($this->search).'%']);
             })

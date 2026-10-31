@@ -135,3 +135,14 @@ Spam protection exists (honeypot + 10/min/IP/form limiter). Screenshots captured
 before/after record. The product is a working skeleton with honest bones (tenancy, versions,
 caching, SSO, tests) wearing a generic skin — the transformation is justified and the
 foundation is reusable.
+
+## Addendum (2026-10-31): the leftover roadmap items shipped
+P0 #4 draft safety (localStorage draft + client-token duplicate-submit guard), P1 #9 funnel
+(views → starts → lodged per form on Tallies; starts counted from ship date, stated on the page),
+P2 #11 approvals as ONE decision stamp per copy (APPROVED/REJECTED + decided_by/at, liftable,
+exported; multi-stage chains not built and not claimed), P2 #12 publishing controls (hashed form
+password with server-side gate + rate limit; allow-embed flag serving `frame-ancestors *` on the
+public route only; QR and iframe snippet in the press's Share group). Single-submission-per-person
+is NOT built: respondents are anonymous, so it cannot be enforced honestly. Per-question
+distributions, date ranges and device split remain open. Older forms can show more lodged copies
+than starts — the counter did not exist before this ship.

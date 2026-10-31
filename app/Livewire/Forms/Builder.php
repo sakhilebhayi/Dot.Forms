@@ -16,10 +16,15 @@ use App\Services\FormTemplateService;
 use App\Services\PublicFormCache;
 use App\Support\FieldTypes;
 use App\Support\VideoEmbed;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -500,6 +505,9 @@ class Builder extends Component
             'settings.quiz_answer_key_json' => ['nullable', 'string', 'max:10000'],
             'settings.conversational_mode' => ['boolean'],
             'settings.presentation' => ['nullable', 'in:document,landing'],
+            'settings.access_password_new' => ['nullable', 'string', 'min:4', 'max:72'],
+            'settings.access_password_remove' => ['boolean'],
+            'settings.allow_embed' => ['boolean'],
             'settings.completion_title' => ['nullable', 'string', 'max:120'],
             'settings.completion_show_another' => ['boolean'],
             'settings.completion_redirect_url' => ['nullable', 'url:http,https', 'max:2048'],
@@ -561,6 +569,14 @@ class Builder extends Component
                 // Server-set, never a text input: the stored path of the last cover upload
                 // (or null after "Remove the cover").
                 'cover_path' => $this->settings['cover_path'] ?? null,
+                // Publishing controls (R-30 leftovers). Only the HASH is ever stored;
+                // a new password replaces it, "remove" clears it, silence keeps it.
+                'access_password_hash' => ($validated['settings']['access_password_remove'] ?? false)
+                    ? null
+                    : (filled($validated['settings']['access_password_new'] ?? null)
+                        ? Hash::make($validated['settings']['access_password_new'])
+                        : data_get($this->form->settings, 'access_password_hash')),
+                'allow_embed' => (bool) ($validated['settings']['allow_embed'] ?? false),
                 'crm_provider' => $validated['settings']['crm_provider'] ?? 'none',
             ],
         ];
@@ -792,6 +808,10 @@ class Builder extends Component
             'completion_redirect_url' => null,
             'completion_redirect_label' => null,
             'cover_path' => null,
+            'access_password_hash' => null,
+            'access_password_new' => null,
+            'access_password_remove' => false,
+            'allow_embed' => false,
             'crm_provider' => 'none',
             'crm_webhook_url' => null,
         ], $this->form->settings ?? []);
@@ -973,9 +993,26 @@ class Builder extends Component
         $this->integrationRejectReason = '';
     }
 
+    /** The public link's QR, drawn server-side as SVG (R-30 share controls). */
+    protected function qrSvg(string $url): string
+    {
+        $writer = new Writer(
+            new ImageRenderer(
+                new RendererStyle(168, 0),
+                new SvgImageBackEnd
+            )
+        );
+
+        return trim(preg_replace('/^<\?xml[^>]*\?>\s*/', '', $writer->writeString($url)) ?? '');
+    }
+
     public function render()
     {
+        $publicUrl = route('forms.public', ['slug' => $this->form->slug]);
+
         return view('livewire.forms.builder', [
+            'publicUrl' => $publicUrl,
+            'qrSvg' => $this->qrSvg($publicUrl),
             'previewUrl' => route('forms.public', ['slug' => $this->form->slug]).'?preview=1',
             'submissionsUrl' => route('teams.forms.submissions', ['team' => $this->team, 'form' => $this->form]),
             'aiSuggestionsUrl' => route('teams.forms.ai-suggestions', ['team' => $this->team, 'form' => $this->form]),

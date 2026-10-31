@@ -14,6 +14,39 @@
         <div class="cb-tally"><div class="cb-tally__lbl">Avg Time To Complete</div><div class="cb-tally__v">{{ $stats['avg_completion_seconds'] }}<small>s</small></div></div>
     </div>
 
+    <div class="cb-tally" style="margin:0 0 14px;">
+        <div class="cb-tally__lbl" style="margin-bottom:8px;">The funnel — viewed → started → lodged</div>
+        <div style="overflow-x:auto;">
+            <table style="border-collapse:collapse;width:100%;font-size:13px;">
+                <thead>
+                    <tr style="color:var(--cb-muted);text-align:left;">
+                        <th style="padding:4px 10px 6px 0;font-weight:600;">Form</th>
+                        <th style="padding:4px 10px 6px 0;font-weight:600;">Viewed</th>
+                        <th style="padding:4px 10px 6px 0;font-weight:600;">Started</th>
+                        <th style="padding:4px 10px 6px 0;font-weight:600;">Lodged</th>
+                        <th style="padding:4px 0 6px;font-weight:600;">Finish rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($funnelRows as $row)
+                        <tr style="border-top:1px dotted var(--cb-boxline);">
+                            <td style="padding:7px 10px 7px 0;overflow-wrap:break-word;max-width:260px;">{{ $row['title'] }}</td>
+                            <td style="padding:7px 10px 7px 0;font-variant-numeric:tabular-nums;">{{ $row['views'] }}</td>
+                            <td style="padding:7px 10px 7px 0;font-variant-numeric:tabular-nums;">{{ $row['starts'] }}</td>
+                            <td style="padding:7px 10px 7px 0;font-variant-numeric:tabular-nums;">{{ $row['submissions'] }}</td>
+                            <td style="padding:7px 0;font-variant-numeric:tabular-nums;">
+                                @if ($row['finish_rate'] !== null){{ $row['finish_rate'] }}%@else<span style="color:var(--cb-muted);">—</span>@endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" style="padding:10px 0;color:var(--cb-muted);">No forms yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <p class="cb-hint" style="margin-top:8px;">"Started" counts a respondent's first answer and only exists from when this tally shipped — older forms can honestly show more lodged copies than starts.</p>
+    </div>
+
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;">
         <div class="cb-tally" style="min-height:300px;">
             <div class="cb-tally__lbl" style="margin-bottom:10px;">Submissions By Day</div>

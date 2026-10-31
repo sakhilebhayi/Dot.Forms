@@ -13,6 +13,7 @@ use App\Support\FieldTypes;
 use App\Support\Formula;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -48,6 +49,15 @@ class PublicView extends Component
     /** Set server-side at submit; printed on the respondent's receipt. */
     public ?string $receiptAt = null;
 
+    /** A browser-held token: retrying the same submit never lodges a second copy. */
+    public string $clientToken = '';
+
+    /** The typed password while the form's gate holds (R-30 publishing controls). */
+    #[Validate('nullable|string|max:255')]
+    public string $accessPassword = '';
+
+    public bool $isPreview = false;
+
     public function mount(string $slug): void
     {
         $preview = request()->boolean('preview');
@@ -77,6 +87,8 @@ class PublicView extends Component
         }
 
         $this->startedAt = now()->timestamp;
+        $this->isPreview = $preview;
+        $this->clientToken = (string) Str::uuid();
 
         if (! $preview) {
             $this->form->increment('views_count');
@@ -85,6 +97,84 @@ class PublicView extends Component
         foreach ($this->form->fields as $field) {
             $this->answers[$field->id] = null;
         }
+    }
+
+    /**
+     * The password gate (R-30 publishing controls). Computed from the session and the
+     * master's settings on every request — never from a client-writable property, so
+     * tampering with the component's state cannot open the gate. A signed-in editor's
+     * preview is exempt: they already read the master.
+     */
+    public function passwordSatisfied(): bool
+    {
+        $hash = $this->accessPasswordHash();
+
+        if ($hash === '' || $this->isPreviewAuthorized()) {
+            return true;
+        }
+
+        return (bool) session()->get('dotforms-unlocked-'.$this->form->id, false);
+    }
+
+    protected function accessPasswordHash(): string
+    {
+        return (string) data_get($this->form->settings, 'access_password_hash', '');
+    }
+
+    protected function isPreviewAuthorized(): bool
+    {
+        if (! $this->isPreview || ! Auth::check()) {
+            return false;
+        }
+
+        $team = $this->form->team;
+
+        return $team !== null && Gate::allows('canEditForm', $team);
+    }
+
+    public function unlock(): void
+    {
+        $limiterKey = 'form-unlock:'.$this->form->id.':'.request()->ip();
+
+        if (RateLimiter::tooManyAttempts($limiterKey, 10)) {
+            $this->addError('accessPassword', 'Too many attempts. Please wait a minute and try again.');
+
+            return;
+        }
+
+        RateLimiter::hit($limiterKey, 60);
+
+        $hash = $this->accessPasswordHash();
+
+        if ($hash !== '' && Hash::check($this->accessPassword, $hash)) {
+            session()->put('dotforms-unlocked-'.$this->form->id, true);
+            $this->reset('accessPassword');
+
+            return;
+        }
+
+        $this->addError('accessPassword', 'That is not the password for this form.');
+    }
+
+    /**
+     * The funnel's "started" mark (R-30 analytics): called once from the browser on the
+     * respondent's first input. The session flag keeps refreshes and repeat calls from
+     * counting twice; previews never count.
+     */
+    public function markStarted(): void
+    {
+        $sessionKey = 'dotforms-started-'.$this->form->id;
+
+        if ($this->isPreview || $this->submitted || session()->get($sessionKey, false)) {
+            return;
+        }
+
+        if (! $this->passwordSatisfied()) {
+            return;
+        }
+
+        session()->put($sessionKey, true);
+        $this->form->increment('starts_count');
     }
 
     /**
@@ -101,6 +191,31 @@ class PublicView extends Component
 
     public function submit(): void
     {
+        // The password gate is enforced here as well as at render: component
+        // properties are client-writable, the session flag is not.
+        if (! $this->passwordSatisfied()) {
+            $this->addError('accessPassword', 'This form needs its password before it can be submitted.');
+
+            return;
+        }
+
+        // A retried submit (flaky network, double tap) with the same browser token
+        // is answered with the existing copy's receipt, never a duplicate.
+        if (preg_match('/^[0-9a-fA-F-]{16,64}$/', $this->clientToken)) {
+            /** @var FormSubmission|null $existing */
+            $existing = $this->form->submissions()
+                ->where('client_token', $this->clientToken)
+                ->first();
+
+            if ($existing) {
+                $this->submitted = true;
+                $this->receiptAt = $existing->submitted_at?->format('j M Y, H:i');
+                [$this->submittedQuizScore, $this->submittedQuizMax] = [$existing->quiz_score, $existing->quiz_max_score];
+
+                return;
+            }
+        }
+
         $limiterKey = 'form-submit:'.$this->form->id.':'.request()->ip();
 
         if (RateLimiter::tooManyAttempts($limiterKey, 10)) {
@@ -198,6 +313,7 @@ class PublicView extends Component
             'quiz_max_score' => $this->quizScore($submissionData)[1],
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
+            'client_token' => preg_match('/^[0-9a-fA-F-]{16,64}$/', $this->clientToken) ? $this->clientToken : null,
         ]);
 
         [$this->submittedQuizScore, $this->submittedQuizMax] = $this->quizScore($submissionData);

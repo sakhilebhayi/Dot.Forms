@@ -39,6 +39,15 @@ class SecurityHeaders
             $headers['Strict-Transport-Security'] = 'max-age='.$hstsSeconds;
         }
 
+        // A route that set an enforced frame-ancestors policy (the embeddable public
+        // form, AllowFormEmbedding) owns its framing: adding X-Frame-Options here would
+        // only contradict it in browsers that still read the older header.
+        $enforcedCsp = (string) $response->headers->get('Content-Security-Policy', '');
+
+        if (str_contains($enforcedCsp, 'frame-ancestors')) {
+            unset($headers['X-Frame-Options']);
+        }
+
         foreach ($headers as $name => $value) {
             if (! $response->headers->has($name)) {
                 $response->headers->set($name, $value);

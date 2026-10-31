@@ -58,6 +58,7 @@ class Form extends Model
         'description',
         'logo_path',
         'views_count',
+        'starts_count',
         'current_version',
         'settings',
         'is_published',
@@ -78,6 +79,7 @@ class Form extends Model
             'published_at' => 'datetime',
             'archived_at' => 'datetime',
             'views_count' => 'integer',
+            'starts_count' => 'integer',
             'current_version' => 'integer',
         ];
     }
