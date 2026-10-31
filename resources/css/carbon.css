@@ -361,3 +361,55 @@ body.cb {
     border: 1px solid var(--cbd-boxline, #b9b3a2); border-radius: 2px; touch-action: none; cursor: crosshair;
 }
 .cb-sigpad__bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 12.5px; color: #6e6a60; }
+
+/* ------------------------------------------------------------------ */
+/* R-31: the living master (canvas press) and content elements.       */
+/* ------------------------------------------------------------------ */
+
+/* content elements on the document */
+.cb-doc__h2 { font-size: 17px; font-weight: 700; margin: 26px 0 14px; padding-bottom: 6px; border-bottom: 1px solid var(--cbd-boxline); }
+.cb-doc__prose { margin: 0 0 18px; color: var(--cbd-soft); max-width: 62ch; }
+.cb-doc__prose p { margin: 0 0 10px; }
+.cb-doc__figure { margin: 0 0 20px; }
+.cb-doc__figure img { display: block; width: 100%; height: auto; border: 1px solid var(--cbd-boxline); border-radius: 2px; }
+.cb-doc__figure figcaption { font-size: 12.5px; color: var(--cbd-muted); margin-top: 6px; }
+.cb-doc__video { margin: 0 0 20px; }
+.cb-doc__videotitle { font-weight: 600; font-size: 13.5px; margin: 0 0 6px; }
+.cb-doc__videoframe { position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--cbd-boxline); border-radius: 2px; overflow: hidden; background: #000; }
+.cb-doc__videoframe iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.cb-doc__rule { border: 0; border-top: 1px dotted var(--cbd-boxline); margin: 20px 0; }
+
+/* the canvas: the document sits on the well, elements select on click */
+.cb-canvasbar { display: flex; align-items: center; gap: 14px; margin: 0 0 10px; }
+.cb-canvasbar__widths { margin-left: auto; display: flex; border: 1px solid var(--cb-rule); border-radius: var(--cb-r); overflow: hidden; }
+.cb-canvasbar__widths button {
+    border: 0; background: var(--cb-sheet); color: var(--cb-muted); font: 600 12px var(--cb-font);
+    padding: 6px 12px; cursor: pointer; border-left: 1px solid var(--cb-rule);
+}
+.cb-canvasbar__widths button:first-child { border-left: 0; }
+.cb-canvasbar__widths button.cb-on { background: var(--cb-ink); color: var(--cb-sheet); }
+.cb-canvaswell { background: var(--cb-sheet-2); border: 1px solid var(--cb-rule); border-radius: var(--cb-r); padding: 26px 16px; }
+.cb-doc--canvas { transition: max-width 200ms var(--cb-ease, ease); }
+@media (prefers-reduced-motion: reduce) { .cb-doc--canvas { transition: none; } }
+
+.cb-el { position: relative; border-radius: 2px; margin: 0 0 14px; cursor: grab; outline-offset: 3px; }
+.cb-el:hover { outline: 1px dashed var(--cb-boxline); }
+.cb-el--sel { outline: 2px solid var(--cb-carbon) !important; }
+.cb-el__break { margin: 2px 0; font: 600 11px var(--cb-mono); letter-spacing: .08em; color: var(--cb-muted); border-top: 1px dashed var(--cb-boxline); border-bottom: 1px dashed var(--cb-boxline); padding: 6px 2px; }
+.cb-el__hint { margin: 4px 0; font-size: 12.5px; color: var(--cbd-muted); font-style: italic; }
+.cb-el__mark { color: var(--cbd-muted); }
+.cb-el__mockline { border-bottom: 1.5px solid var(--cbd-ink); min-height: 30px; color: var(--cbd-muted); font-size: 13px; padding: 6px 2px 3px; }
+.cb-el__mockarea { border: 1px dotted var(--cbd-boxline); border-radius: 2px; min-height: 64px; }
+.cb-el__mocksig { border: 1px solid var(--cbd-boxline); border-radius: 2px; min-height: 70px; display: grid; place-items: center; color: var(--cbd-muted); font-size: 13px; background: var(--cbd-field); }
+
+.cb-insert { display: block; width: 100%; border: 0; background: none; padding: 1px 0; cursor: pointer; opacity: 0; transition: opacity 120ms ease; }
+.cb-insert span {
+    display: block; margin: 0 auto; width: 26px; height: 26px; border-radius: 999px;
+    border: 1px solid var(--cb-boxline); background: var(--cb-sheet); color: var(--cb-muted);
+    font: 600 15px var(--cb-mono); line-height: 24px;
+}
+.cb-insert:hover, .cb-insert:focus-visible { opacity: 1; }
+.cb-el:hover + .cb-insert, .cb-insert:has(+ .cb-el:hover) { opacity: 0.6; }
+.cb-doc--canvas:hover .cb-insert { opacity: 0.35; }
+.cb-doc--canvas .cb-insert:hover { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .cb-insert { transition: none; } }

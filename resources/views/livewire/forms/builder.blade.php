@@ -1,5 +1,6 @@
 <div x-data="{
     dragging: null,
+    canvasW: 'desk',
     collectKeys() {
         return Array.from(this.$refs.fieldList.querySelectorAll('[data-key]')).map((el) => el.dataset.key);
     }
@@ -39,7 +40,7 @@
         <button type="button" onclick="window.location.reload()" class="cb-btn cb-btn--sm" style="margin-left:10px;">Reload</button>
     </div>
 
-    <div class="cb-press">
+    <div class="cb-press cb-press--canvas">
         {{-- the type tray --}}
         <div>
             @foreach (\App\Support\FieldTypes::groups() as $groupLabel => $groupTypes)
@@ -68,118 +69,231 @@
             @endif
         </div>
 
-        {{-- the master sheet --}}
-        <div class="cb-master">
-            <div class="cb-master__head">
-                <b style="flex:1;min-width:200px;">
-                    <label class="cb-label" for="fb-form-title" style="color:var(--cb-muted);">Form Title</label>
-                    <input id="fb-form-title" type="text" wire:model.live="title" class="cb-input" style="border:0;border-bottom:1.5px solid var(--cb-ink);border-radius:0;font-weight:700;font-size:17px;padding:0 2px;height:34px;background:transparent;" />
-                </b>
-                <span class="cb-serial">{{ $serial }}</span>
+        {{-- the living master: the document itself is the canvas (R-31) --}}
+        <div>
+            <div class="cb-canvasbar">
+                <span class="cb-colhead" style="margin:0;">The sheet</span>
+                <div class="cb-canvasbar__widths" role="group" aria-label="Canvas width">
+                    <button type="button" :class="{'cb-on': canvasW === 'desk'}" @click="canvasW = 'desk'">Desk</button>
+                    <button type="button" :class="{'cb-on': canvasW === 'tablet'}" @click="canvasW = 'tablet'">Tablet</button>
+                    <button type="button" :class="{'cb-on': canvasW === 'phone'}" @click="canvasW = 'phone'">Phone</button>
+                </div>
             </div>
-
-            <div class="cb-field">
-                <label class="cb-label" for="fb-description">Description</label>
-                <textarea id="fb-description" wire:model.live="description" rows="2" class="cb-textarea" placeholder="What this form is for, in one or two sentences."></textarea>
-            </div>
-
-            <h3 class="cb-colhead" style="margin-top:18px;">Form Fields</h3>
-            <div x-ref="fieldList" style="display:grid;gap:16px;">
-                @forelse ($fields as $index => $field)
-                    <article
-                        class="cb-fieldbox"
-                        wire:key="builder-field-{{ $field['key'] }}"
-                        data-key="{{ $field['key'] }}"
-                        draggable="true"
-                        @dragstart="dragging = $el.dataset.key"
-                        @dragover.prevent
-                        @drop.prevent="
-                            if (dragging && dragging !== $el.dataset.key) {
-                                const items = Array.from($refs.fieldList.querySelectorAll('[data-key]'));
-                                const from = items.find((x) => x.dataset.key === dragging);
-                                const to = $el;
-                                if (from && to) {
-                                    const fromIndex = items.indexOf(from);
-                                    const toIndex = items.indexOf(to);
-                                    if (fromIndex < toIndex) { to.after(from); } else { to.before(from); }
-                                    $wire.reorderFields(collectKeys());
-                                }
-                            }
-                            dragging = null;
-                        "
-                        style="cursor:grab;"
-                    >
-                        <span class="cb-fieldbox__no">{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
-                        <div class="cb-fieldbox__tools">
-                            <button type="button" wire:click="moveFieldUp({{ $index }})" aria-label="Move field up">↑</button>
-                            <button type="button" wire:click="moveFieldDown({{ $index }})" aria-label="Move field down">↓</button>
-                            <button type="button" wire:click="duplicateField({{ $index }})" aria-label="Duplicate field">⧉</button>
-                            @if ($field['type'] !== \App\Support\FieldTypes::PAGE_BREAK)
-                                <button type="button" wire:click="openFieldSettings({{ $index }})" aria-label="Field settings">⋯</button>
-                            @endif
-                            <button type="button" class="cb-danger" wire:click="removeField({{ $index }})" aria-label="Remove field">✕</button>
-                        </div>
-
-                        @if ($field['type'] === \App\Support\FieldTypes::PAGE_BREAK)
-                            <p style="margin:6px 90px 2px 0;font:600 11px var(--cb-mono);letter-spacing:.08em;color:var(--cb-muted);">⤵ PAGE BREAK — the published form starts a new page here</p>
-                        @else
-                        <div style="display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;margin-top:4px;">
-                            <div>
-                                <label class="cb-label" for="fb-label-{{ $index }}">Label</label>
-                                <input id="fb-label-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.label" class="cb-input" />
-                            </div>
-                            <div>
-                                <label class="cb-label" for="fb-type-{{ $index }}">Type</label>
-                                <select id="fb-type-{{ $index }}" wire:model.live="fields.{{ $index }}.type" class="cb-select">
-                                    @foreach ($fieldTypes as $type)
-                                        <option value="{{ $type }}">{{ \App\Support\FieldTypes::label($type) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        @if ($field['type'] === 'hidden')
-                            <div class="cb-field" style="margin-top:12px;">
-                                <label class="cb-label" for="fb-default-value-{{ $index }}">Value recorded with every copy</label>
-                                <input id="fb-default-value-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.default_value" class="cb-input" placeholder="e.g. campaign-november" />
-                            </div>
-                        @else
-                            <div class="cb-field" style="margin-top:12px;">
-                                <label class="cb-label" for="fb-placeholder-{{ $index }}">Placeholder</label>
-                                <input id="fb-placeholder-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.placeholder" class="cb-input" />
-                            </div>
-                        @endif
-
-                        @if (\App\Support\FieldTypes::usesChoices($field['type']))
-                            <div class="cb-field">
-                                <label class="cb-label" for="fb-options-comma-separated-{{ $index }}">Options (comma-separated)</label>
-                                <input id="fb-options-comma-separated-{{ $index }}" type="text" wire:model.live="fields.{{ $index }}.options" class="cb-input" />
-                            </div>
-                        @endif
-
-                        @if ($field['type'] !== 'hidden')
-                            <label class="cb-check">
-                                <input type="checkbox" wire:model.live="fields.{{ $index }}.required" />
-                                <span>Mark as required</span>
-                            </label>
-                        @endif
-
-                        @if (! empty($field['visibility_rule']['trigger_field_key']))
-                            <p class="cb-hint">Shown only when another answer matches — set under ⋯.</p>
-                        @endif
-                        @endif
-                    </article>
-                @empty
-                    <div class="cb-empty">
-                        <h2>A blank master</h2>
-                        <p>Add a field from the type tray to start setting this form.</p>
+            <div class="cb-canvaswell" @keydown.escape.window="$wire.deselectField()">
+                <div class="cb-doc cb-doc--{{ $settings['theme_preset'] ?? 'carbon' }} cb-doc--canvas" :style="{maxWidth: {desk: '660px', tablet: '560px', phone: '375px'}[canvasW]}">
+                    <div class="cb-doc__head">
+                        <label class="cb-label" for="fb-form-title" style="position:absolute;left:-9999px;">Form Title</label>
+                        <input id="fb-form-title" type="text" wire:model.live="title" placeholder="Form Title"
+                            style="flex:1;min-width:160px;border:0;border-bottom:2px solid transparent;background:transparent;font:700 21px var(--cb-font);color:var(--cbd-ink);padding:0;" />
+                        <span class="cb-serial">{{ $serial }}</span>
                     </div>
-                @endforelse
+                    <textarea id="fb-description" wire:model.live="description" rows="2" placeholder="What this form is for, in one or two sentences." aria-label="Description"
+                        style="width:100%;border:0;background:transparent;font:inherit;color:var(--cbd-muted);resize:vertical;padding:0;margin:0 0 16px;"></textarea>
+
+                    <div x-ref="fieldList">
+                        @php $qNo = 0; @endphp
+                        @forelse ($fields as $index => $field)
+                            <button type="button" class="cb-insert" wire:click="insertFieldAt({{ $index }})" aria-label="Insert an element here"><span>+</span></button>
+                            <div
+                                class="cb-el @if ($editingFieldIndex === $index) cb-el--sel @endif"
+                                wire:key="builder-field-{{ $field['key'] }}"
+                                data-key="{{ $field['key'] }}"
+                                draggable="true"
+                                @dragstart="dragging = $el.dataset.key"
+                                @dragover.prevent
+                                @drop.prevent="
+                                    if (dragging && dragging !== $el.dataset.key) {
+                                        const items = Array.from($refs.fieldList.querySelectorAll('[data-key]'));
+                                        const from = items.find((x) => x.dataset.key === dragging);
+                                        const to = $el;
+                                        if (from && to) {
+                                            const fromIndex = items.indexOf(from);
+                                            const toIndex = items.indexOf(to);
+                                            if (fromIndex < toIndex) { to.after(from); } else { to.before(from); }
+                                            $wire.reorderFields(collectKeys());
+                                        }
+                                    }
+                                    dragging = null;
+                                "
+                                wire:click="selectField({{ $index }})"
+                                role="button" tabindex="0" @keydown.enter="$wire.selectField({{ $index }})"
+                                aria-label="Edit: {{ $field['label'] ?: \App\Support\FieldTypes::label($field['type']) }}"
+                            >
+                                @include('livewire.forms.partials.element-canvas', ['field' => $field, 'qNo' => \App\Support\FieldTypes::collectsAnswer($field['type']) ? ++$qNo : null])
+                            </div>
+                        @empty
+                            <div class="cb-empty">
+                                <h2>A blank master</h2>
+                                <p>Add an element from the type tray, or press + below.</p>
+                            </div>
+                        @endforelse
+                        <button type="button" class="cb-insert" wire:click="insertFieldAt({{ count($fields) }})" aria-label="Add an element at the end"><span>+</span></button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        {{-- settings --}}
         <div class="cb-props">
+            @if ($editingFieldIndex !== null && isset($fields[$editingFieldIndex]))
+                @php $sel = $fields[$editingFieldIndex]; @endphp
+                <div style="display:flex;align-items:baseline;gap:8px;">
+                    <h3 class="cb-colhead" style="margin:0 0 10px;">Selected element</h3>
+                    <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="margin-left:auto;" wire:click="deselectField">Done</button>
+                </div>
+
+                <div class="cb-field">
+                    <label class="cb-label" for="el-type">Type</label>
+                    <select id="el-type" wire:model.live="fields.{{ $editingFieldIndex }}.type" class="cb-select">
+                        @foreach ($fieldTypes as $type)
+                            <option value="{{ $type }}">{{ \App\Support\FieldTypes::label($type) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                @if ($sel['type'] === \App\Support\FieldTypes::PAGE_BREAK)
+                    <p class="cb-hint">The published form starts a new page here. Nothing to configure.</p>
+                @elseif ($sel['type'] === 'divider')
+                    <p class="cb-hint">A quiet rule between elements. Nothing to configure.</p>
+                @else
+                    @if ($sel['type'] === 'heading')
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-label">Heading text</label>
+                            <input id="el-label" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.label" class="cb-input" />
+                        </div>
+                    @elseif ($sel['type'] === 'text_block')
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-body">Text</label>
+                            <textarea id="el-body" rows="5" wire:model.live="fields.{{ $editingFieldIndex }}.body" class="cb-textarea" placeholder="A paragraph between the questions. Blank lines split paragraphs."></textarea>
+                            @error('fields.' . $editingFieldIndex . '.body')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                        </div>
+                    @elseif ($sel['type'] === 'image')
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-image">Image</label>
+                            <input id="el-image" type="file" accept="image/*" wire:model="elementImages.{{ $editingFieldIndex }}" class="cb-input" style="padding:6px 10px;height:auto;" />
+                            @error('elementImages.' . $editingFieldIndex)<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                            <p class="cb-hint">Stored when you save. The label below is the image's alt text; the helper text is its caption.</p>
+                        </div>
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-label">Alt text</label>
+                            <input id="el-label" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.label" class="cb-input" />
+                        </div>
+                    @elseif ($sel['type'] === 'video')
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-video">YouTube or Vimeo link</label>
+                            <input id="el-video" type="url" wire:model.live="fields.{{ $editingFieldIndex }}.video_url" class="cb-input" placeholder="https://youtu.be/…" />
+                            @error('fields.' . $editingFieldIndex . '.video_url')<p class="cb-error" role="alert">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-label">Title shown above the video</label>
+                            <input id="el-label" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.label" class="cb-input" />
+                        </div>
+                    @else
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-label">Label</label>
+                            <input id="el-label" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.label" class="cb-input" />
+                        </div>
+                        @if ($sel['type'] === 'hidden')
+                            <div class="cb-field">
+                                <label class="cb-label" for="el-default">Value recorded with every copy</label>
+                                <input id="el-default" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.default_value" class="cb-input" placeholder="e.g. campaign-november" />
+                            </div>
+                        @else
+                            <div class="cb-field">
+                                <label class="cb-label" for="el-placeholder">Placeholder</label>
+                                <input id="el-placeholder" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.placeholder" class="cb-input" />
+                            </div>
+                        @endif
+                        @if (\App\Support\FieldTypes::usesChoices($sel['type']))
+                            <div class="cb-field">
+                                <label class="cb-label" for="el-options">Options (comma-separated)</label>
+                                <input id="el-options" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.options" class="cb-input" />
+                            </div>
+                        @endif
+                        @if ($sel['type'] !== 'hidden')
+                            <label class="cb-check" style="margin:0 0 12px;">
+                                <input type="checkbox" wire:model.live="fields.{{ $editingFieldIndex }}.required" />
+                                <span>Mark as required</span>
+                            </label>
+                        @endif
+                    @endif
+
+                    @if (! in_array($sel['type'], \App\Support\FieldTypes::DISPLAY_TYPES, true) || $sel['type'] === 'image')
+                        <div class="cb-field">
+                            <label class="cb-label" for="el-helper">{{ $sel['type'] === 'image' ? 'Caption' : 'Helper Text' }}</label>
+                            <textarea id="el-helper" rows="2" wire:model.live="fields.{{ $editingFieldIndex }}.helper_text" class="cb-textarea"></textarea>
+                        </div>
+                    @endif
+
+                    @if (\App\Support\FieldTypes::collectsAnswer($sel['type']))
+        <div class="cb-field">
+                            <span class="cb-label">Show this field only when</span>
+                            @php
+                                $otherFields = collect($fields)->filter(
+                                    fn ($f, $i) => $i !== $editingFieldIndex
+                                        && ! empty($f['key'])
+                                        && \App\Support\FieldTypes::collectsAnswer($f['type'] ?? 'text')
+                                        && ($f['type'] ?? '') !== 'hidden'
+                                )->values();
+                                $editRules = $fields[$editingFieldIndex]['visibility']['rules'] ?? [];
+                                $operatorWords = [
+                                    'equals' => 'equals', 'not_equals' => 'does not equal', 'contains' => 'contains',
+                                    'empty' => 'is empty', 'not_empty' => 'is answered',
+                                    'greater_than' => 'is more than', 'less_than' => 'is less than',
+                                ];
+                            @endphp
+                            <div style="display:grid;gap:8px;">
+                                @if (count($editRules) > 1)
+                                    <select aria-label="How the rules combine" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.logic" class="cb-select">
+                                        <option value="all">every rule below matches</option>
+                                        <option value="any">any rule below matches</option>
+                                    </select>
+                                @endif
+
+                                @foreach ($editRules as $ruleIndex => $editRule)
+                                    <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center;" wire:key="vr-{{ $editingFieldIndex }}-{{ $ruleIndex }}">
+                                        <select aria-label="The field the rule watches" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.trigger_field_key" class="cb-select">
+                                            <option value="">Choose a field…</option>
+                                            @foreach ($otherFields as $other)
+                                                <option value="{{ $other['key'] }}">{{ $other['label'] ?: 'Untitled field' }}</option>
+                                            @endforeach
+                                        </select>
+                                        <select aria-label="How the answer is compared" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.operator" class="cb-select">
+                                            @foreach ($operatorWords as $op => $word)
+                                                <option value="{{ $op }}">{{ $word }}</option>
+                                            @endforeach
+                                        </select>
+                                        @if (! in_array($editRule['operator'] ?? 'equals', \App\Services\FormFieldVisibilityEvaluator::VALUELESS, true))
+                                            <input aria-label="Value the answer is compared with" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.value" placeholder="value" class="cb-input">
+                                        @else
+                                            <span class="cb-hint" style="margin:0;">—</span>
+                                        @endif
+                                        <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="min-width:30px;padding:0;color:var(--cb-stamp-red)" wire:click="removeVisibilityRule({{ $editingFieldIndex }}, {{ $ruleIndex }})" aria-label="Remove this rule">✕</button>
+                                    </div>
+                                @endforeach
+
+                                <div>
+                                    <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="addVisibilityRule({{ $editingFieldIndex }})">+ Add a rule</button>
+                                </div>
+
+                                @if ($editRules !== [])
+                                    <p class="cb-hint">While the rules do not match, this field is hidden from respondents, is never required, and its answer is never recorded.</p>
+                                @else
+                                    <p class="cb-hint">No rules: the field always shows.</p>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                @endif
+
+                <div style="display:flex;gap:6px;border-top:1px solid var(--cb-rule);padding-top:12px;margin:4px 0 16px;">
+                    <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="duplicateField({{ $editingFieldIndex }})">Duplicate</button>
+                    <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="margin-left:auto;color:var(--cb-stamp-red)" wire:click="removeField({{ $editingFieldIndex }})">Remove</button>
+                </div>
+            @else
+                <p class="cb-hint" style="margin:0 0 16px;">Select an element on the sheet to edit it — or add one from the type tray.</p>
+            @endif
+
+
             <h3 class="cb-colhead">Form settings</h3>
 
             <details open>
@@ -397,84 +511,7 @@
 
     <div wire:poll.30s="autoSave" class="hidden" aria-hidden="true"></div>
 
-    {{-- Field settings modal --}}
-    @if ($showFieldSettingsModal && $editingFieldIndex !== null)
-        <div style="position:fixed;inset:0;background:rgba(25,26,28,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;">
-            <div style="background:var(--cb-sheet);border:1px solid var(--cb-boxline);box-shadow:4px 4px 0 var(--cb-shadow);border-radius:3px;padding:22px;max-width:520px;width:100%;">
-                <h3 style="font-size:16px;font-weight:700;margin:0 0 16px;">Field settings</h3>
-
-                <div class="cb-field">
-                    <label class="cb-label" for="fb-helper-text-{{ $editingFieldIndex }}">Helper Text</label>
-                    <textarea id="fb-helper-text-{{ $editingFieldIndex }}" wire:model.live="fields.{{ $editingFieldIndex }}.helper_text" rows="2" class="cb-textarea"></textarea>
-                </div>
-
-                <div class="cb-field">
-                    <span class="cb-label">Show this field only when</span>
-                    @php
-                        $otherFields = collect($fields)->filter(
-                            fn ($f, $i) => $i !== $editingFieldIndex
-                                && ! empty($f['key'])
-                                && \App\Support\FieldTypes::collectsAnswer($f['type'] ?? 'text')
-                                && ($f['type'] ?? '') !== 'hidden'
-                        )->values();
-                        $editRules = $fields[$editingFieldIndex]['visibility']['rules'] ?? [];
-                        $operatorWords = [
-                            'equals' => 'equals', 'not_equals' => 'does not equal', 'contains' => 'contains',
-                            'empty' => 'is empty', 'not_empty' => 'is answered',
-                            'greater_than' => 'is more than', 'less_than' => 'is less than',
-                        ];
-                    @endphp
-                    <div style="display:grid;gap:8px;">
-                        @if (count($editRules) > 1)
-                            <select aria-label="How the rules combine" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.logic" class="cb-select">
-                                <option value="all">every rule below matches</option>
-                                <option value="any">any rule below matches</option>
-                            </select>
-                        @endif
-
-                        @foreach ($editRules as $ruleIndex => $editRule)
-                            <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center;" wire:key="vr-{{ $editingFieldIndex }}-{{ $ruleIndex }}">
-                                <select aria-label="The field the rule watches" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.trigger_field_key" class="cb-select">
-                                    <option value="">Choose a field…</option>
-                                    @foreach ($otherFields as $other)
-                                        <option value="{{ $other['key'] }}">{{ $other['label'] ?: 'Untitled field' }}</option>
-                                    @endforeach
-                                </select>
-                                <select aria-label="How the answer is compared" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.operator" class="cb-select">
-                                    @foreach ($operatorWords as $op => $word)
-                                        <option value="{{ $op }}">{{ $word }}</option>
-                                    @endforeach
-                                </select>
-                                @if (! in_array($editRule['operator'] ?? 'equals', \App\Services\FormFieldVisibilityEvaluator::VALUELESS, true))
-                                    <input aria-label="Value the answer is compared with" type="text" wire:model.live="fields.{{ $editingFieldIndex }}.visibility.rules.{{ $ruleIndex }}.value" placeholder="value" class="cb-input">
-                                @else
-                                    <span class="cb-hint" style="margin:0;">—</span>
-                                @endif
-                                <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" style="min-width:30px;padding:0;color:var(--cb-stamp-red)" wire:click="removeVisibilityRule({{ $editingFieldIndex }}, {{ $ruleIndex }})" aria-label="Remove this rule">✕</button>
-                            </div>
-                        @endforeach
-
-                        <div>
-                            <button type="button" class="cb-btn cb-btn--quiet cb-btn--sm" wire:click="addVisibilityRule({{ $editingFieldIndex }})">+ Add a rule</button>
-                        </div>
-
-                        @if ($editRules !== [])
-                            <p class="cb-hint">While the rules do not match, this field is hidden from respondents, is never required, and its answer is never recorded.</p>
-                        @else
-                            <p class="cb-hint">No rules: the field always shows.</p>
-                        @endif
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;border-top:1px solid var(--cb-rule);padding-top:14px;">
-                    <button wire:click="closeFieldSettings" class="cb-btn">Close</button>
-                </div>
-            </div>
-        </div>
-    @endif
-</div>
-
-<script>
+    <script>
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.Echo) {
             // No Echo client (the frontend was built without VITE_REVERB_APP_KEY,
