@@ -72,6 +72,29 @@
                     <label><span>{{ $n }}</span></label>
                 @endforeach
             </div>
+        @elseif ($type === 'address')
+            <div class="cb-el__mockline">Street</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="cb-el__mockline">City</div><div class="cb-el__mockline">Province</div><div class="cb-el__mockline">Code</div>
+            </div>
+        @elseif ($type === 'matrix')
+            @php $mockRows = collect(explode(',', (string) ($field['rows'] ?? '')))->map(fn ($r) => trim($r))->filter(); @endphp
+            @if ($choices->isEmpty() || $mockRows->isEmpty())
+                <p class="cb-el__hint">Set the rows and the columns in the panel on the right.</p>
+            @else
+                <div class="cb-matrix"><table>
+                    <thead><tr><th></th>@foreach ($choices as $c)<th>{{ $c }}</th>@endforeach</tr></thead>
+                    <tbody>@foreach ($mockRows as $r)<tr><th>{{ $r }}</th>@foreach ($choices as $c)<td><span class="cb-el__mark">◉</span></td>@endforeach</tr>@endforeach</tbody>
+                </table></div>
+            @endif
+        @elseif ($type === 'ranking')
+            @forelse ($choices as $i => $option)
+                <div class="cb-ranking__row"><span class="cb-serial" style="font-size:12px;">{{ $i + 1 }}.</span> {{ $option }}</div>
+            @empty
+                <p class="cb-el__hint">Add the items to rank in the panel on the right.</p>
+            @endforelse
+        @elseif ($type === 'calculated')
+            <p class="cb-el__hint">∑ {{ $field['formula'] ?: 'Write the formula in the panel on the right.' }}</p>
         @elseif ($type === 'file')
             <div class="cb-el__mockline">↥ {{ $field['placeholder'] ?: 'Choose a file' }}</div>
         @elseif ($type === 'signature')

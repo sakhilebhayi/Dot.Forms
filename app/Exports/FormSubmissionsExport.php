@@ -53,7 +53,9 @@ class FormSubmissionsExport implements FromArray, WithHeadings
                 }
 
                 if (is_array($value)) {
-                    $value = implode(', ', array_map('strval', $value));
+                    $value = array_is_list($value)
+                        ? implode(', ', array_map('strval', $value))
+                        : collect($value)->map(fn ($v, $k) => $k.': '.$v)->implode('; ');
                 }
 
                 $row[] = (string) ($value ?? '');

@@ -413,3 +413,18 @@ body.cb {
 .cb-doc--canvas:hover .cb-insert { opacity: 0.35; }
 .cb-doc--canvas .cb-insert:hover { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .cb-insert { transition: none; } }
+
+/* R-31 phase 2: composite answers on the document */
+.cb-address { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.cb-address > div:first-child { grid-column: 1 / -1; }
+.cb-address .cb-sub { display: block; font-size: 11.5px; font-weight: 600; color: var(--cbd-muted); margin: 0 0 3px; }
+@media (min-width: 520px) { .cb-address { grid-template-columns: 1fr 1fr 1fr; } .cb-address > div:first-child { grid-column: 1 / -1; } }
+.cb-matrix { overflow-x: auto; }
+.cb-matrix table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.cb-matrix th { font-weight: 600; text-align: left; padding: 6px 10px 6px 0; color: var(--cbd-ink); }
+.cb-matrix thead th { font-size: 12px; color: var(--cbd-muted); text-align: center; padding: 0 8px 6px; }
+.cb-matrix thead th:first-child, .cb-matrix tbody th { text-align: left; padding-left: 0; }
+.cb-matrix td { text-align: center; padding: 6px 8px; border-top: 1px dotted var(--cbd-boxline); }
+.cb-matrix tbody th { border-top: 1px dotted var(--cbd-boxline); }
+.cb-matrix input[type="radio"] { width: 16px; height: 16px; min-height: 0; accent-color: var(--cbd-accent); }
+.cb-ranking__row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--cbd-boxline); border-radius: 2px; padding: 7px 10px; margin: 0 0 6px; background: var(--cbd-field); }

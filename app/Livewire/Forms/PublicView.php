@@ -10,6 +10,7 @@ use App\Services\FormFieldVisibilityEvaluator;
 use App\Services\FormSubmissionIntegrationDispatcher;
 use App\Services\PublicFormCache;
 use App\Support\FieldTypes;
+use App\Support\Formula;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -165,6 +166,22 @@ class PublicView extends Component
                     'forms/'.$this->form->id,
                     config('dotforms.forms.upload_disk', 'public')
                 );
+            }
+        }
+
+        // Calculated fields (R-31): evaluated server-side from the other answers,
+        // keyed by field_key — never from anything the client sent for them.
+        $byKey = [];
+        foreach ($this->form->fields as $field) {
+            if (FieldTypes::collectsAnswer($field->type) && $field->type !== 'calculated') {
+                $byKey[(string) ($field->options['field_key'] ?? '')] = $submissionData[$field->id] ?? null;
+            }
+        }
+        foreach ($this->form->fields as $field) {
+            if ($field->type === 'calculated') {
+                $submissionData[$field->id] = $this->isFieldVisible($field)
+                    ? Formula::evaluate($field->options['formula'] ?? null, $byKey)
+                    : null;
             }
         }
 
