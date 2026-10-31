@@ -45,6 +45,8 @@ class Builder extends Component
 
     public $logoUpload;
 
+    public $coverUpload;
+
     public array $formRoles = [];
 
     public ?int $selectedMemberId = null;
@@ -476,8 +478,15 @@ class Builder extends Component
             'settings.quiz_enabled' => ['boolean'],
             'settings.quiz_answer_key_json' => ['nullable', 'string', 'max:10000'],
             'settings.conversational_mode' => ['boolean'],
+            'settings.presentation' => ['nullable', 'in:document,landing'],
+            'settings.completion_title' => ['nullable', 'string', 'max:120'],
+            'settings.completion_show_another' => ['boolean'],
+            'settings.completion_redirect_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'settings.completion_redirect_label' => ['nullable', 'string', 'max:60'],
             'settings.crm_provider' => ['nullable', 'in:none,hubspot,pipedrive,generic'],
             'settings.crm_webhook_url' => ['nullable', 'url', 'max:2048', new SafeWebhookUrl],
+            'logoUpload' => ['nullable', 'image', 'max:5120'],
+            'coverUpload' => ['nullable', 'image', 'max:5120'],
             'fields' => ['array'],
             'fields.*.type' => ['required', 'string', 'in:'.implode(',', FieldTypes::ALL)],
             'fields.*.label' => ['required', 'string', 'max:255'],
@@ -523,12 +532,24 @@ class Builder extends Component
                 'quiz_enabled' => (bool) ($validated['settings']['quiz_enabled'] ?? false),
                 'quiz_answer_key' => $this->parseAnswerKey((string) ($validated['settings']['quiz_answer_key_json'] ?? '')),
                 'conversational_mode' => (bool) ($validated['settings']['conversational_mode'] ?? false),
+                'presentation' => $validated['settings']['presentation'] ?? 'document',
+                'completion_title' => $validated['settings']['completion_title'] ?? null,
+                'completion_show_another' => (bool) ($validated['settings']['completion_show_another'] ?? false),
+                'completion_redirect_url' => $validated['settings']['completion_redirect_url'] ?? null,
+                'completion_redirect_label' => $validated['settings']['completion_redirect_label'] ?? null,
+                // Server-set, never a text input: the stored path of the last cover upload
+                // (or null after "Remove the cover").
+                'cover_path' => $this->settings['cover_path'] ?? null,
                 'crm_provider' => $validated['settings']['crm_provider'] ?? 'none',
             ],
         ];
 
         if ($this->logoUpload) {
             $formData['logo_path'] = $this->logoUpload->store('form-logos', config('dotforms.forms.upload_disk', 'public'));
+        }
+
+        if ($this->coverUpload) {
+            $formData['settings']['cover_path'] = $this->coverUpload->store('form-covers', config('dotforms.forms.upload_disk', 'public'));
         }
 
         // One atomic write: a visitor (or a failure) must never see or leave
@@ -657,6 +678,7 @@ class Builder extends Component
         }));
         $this->hydrateState();
         $this->logoUpload = null;
+        $this->coverUpload = null;
         $this->elementImages = [];
         $this->lastSavedAt = now()->format('H:i');
 
@@ -743,6 +765,12 @@ class Builder extends Component
             'quiz_enabled' => false,
             'quiz_answer_key' => [],
             'conversational_mode' => false,
+            'presentation' => 'document',
+            'completion_title' => null,
+            'completion_show_another' => false,
+            'completion_redirect_url' => null,
+            'completion_redirect_label' => null,
+            'cover_path' => null,
             'crm_provider' => 'none',
             'crm_webhook_url' => null,
         ], $this->form->settings ?? []);
@@ -900,6 +928,13 @@ class Builder extends Component
         $this->integrationRejectReason = '';
     }
 
+    /** Clears the cover on the next save; the file itself is kept until retention cleanup. */
+    public function removeCover(): void
+    {
+        $this->settings['cover_path'] = null;
+        $this->coverUpload = null;
+    }
+
     public function cancelRejectIntegration(): void
     {
         $this->rejectingIntegrationType = null;
@@ -925,6 +960,7 @@ class Builder extends Component
             'aiSuggestionsUrl' => route('teams.forms.ai-suggestions', ['team' => $this->team, 'form' => $this->form]),
             'aiAnalyticsUrl' => route('teams.forms.ai-analytics', ['team' => $this->team, 'form' => $this->form]),
             'logoUrl' => $this->form->logo_path ? asset('storage/'.$this->form->logo_path) : null,
+            'coverUrl' => filled($this->settings['cover_path'] ?? null) ? asset('storage/'.$this->settings['cover_path']) : null,
             'collaborators' => $this->form->availableCollaborators(),
         ]);
     }

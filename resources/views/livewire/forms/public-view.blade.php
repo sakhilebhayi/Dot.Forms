@@ -51,6 +51,22 @@
     $accent = preg_match('/^#[0-9a-fA-F]{6}$/', $accent) ? $accent : null;
     $docWidth = ['narrow' => '560px', 'standard' => '660px', 'wide' => '780px'][$form->settings['doc_width'] ?? 'standard'] ?? '660px';
     $docStyle = '--cbd-width: '.$docWidth.';'.($accent ? ' --cbd-accent: '.$accent.';' : '');
+
+    // Landing presentation (R-31 Phase 3): a cover fronts the document; "Begin" opens it.
+    // After a failed submit (or once submitted) the document opens straight away so
+    // nothing — least of all an error — can hide behind the cover.
+    $isLanding = (($form->settings['presentation'] ?? 'document') === 'landing');
+    $coverUrl = filled($form->settings['cover_path'] ?? null) ? asset('storage/'.$form->settings['cover_path']) : null;
+    $questionCount = $renderFields->filter(fn ($field) => FieldTypes::collectsAnswer($field->type))->count();
+    $openedInit = (! $isLanding || $submitted || $errors->any()) ? 'true' : 'false';
+
+    // Completion screen (R-31 Phase 3): owner title, optional onward link and
+    // "submit another". The link only renders when it is a plain http(s) URL.
+    $completionTitle = trim((string) ($form->settings['completion_title'] ?? ''));
+    $showAnother = (bool) ($form->settings['completion_show_another'] ?? false);
+    $redirectUrl = (string) ($form->settings['completion_redirect_url'] ?? '');
+    $redirectUrl = \Illuminate\Support\Str::startsWith($redirectUrl, ['http://', 'https://']) ? $redirectUrl : null;
+    $redirectLabel = trim((string) ($form->settings['completion_redirect_label'] ?? '')) ?: 'Continue';
 @endphp
 
 @if (! empty($customCss))
@@ -66,7 +82,31 @@
      conversational_mode and conditional logic are both used together, a mid-fill
      visibility change won't retarget Alpine's step bounds until the page reloads.
      `showAll` opens every page after a failed submit so no error can hide. --}}
-<div class="cb-doc cb-doc--{{ $preset }}" style="{{ $docStyle }}" x-data="{ submitted: @entangle('submitted'), step: 0, conversational: {{ $isConversational ? 'true' : 'false' }}, total: {{ $renderFields->count() }}, page: 0, pages: {{ $pageCount }}, showAll: {{ $errors->any() ? 'true' : 'false' }} }">
+<div class="cb-doc cb-doc--{{ $preset }}" style="{{ $docStyle }}" x-data="{ submitted: @entangle('submitted'), step: 0, conversational: {{ $isConversational ? 'true' : 'false' }}, total: {{ $renderFields->count() }}, page: 0, pages: {{ $pageCount }}, showAll: {{ $errors->any() ? 'true' : 'false' }}, opened: {{ $openedInit }} }">
+    @if ($isLanding && ! $submitted)
+        <div class="cb-cover" x-show="!opened" @if ($openedInit === 'true') x-cloak @endif>
+            @if ($coverUrl)
+                <img class="cb-cover__img" src="{{ $coverUrl }}" alt="">
+            @endif
+            @if ($logoUrl)
+                <img src="{{ $logoUrl }}" alt="{{ $form->title }} logo" style="height:40px;width:auto;margin-bottom:18px;">
+            @endif
+            <div class="cb-cover__kicker">
+                <span>{{ $form->team?->name ?? config('app.name') }}</span>
+                <span class="cb-serial">{{ $serial }}</span>
+            </div>
+            <h1 class="cb-cover__title">{{ $form->title }}</h1>
+            @if ($form->description)
+                <p class="cb-cover__desc">{{ $form->description }}</p>
+            @endif
+            <div class="cb-cover__begin">
+                <button type="button" class="cb-btn cb-btn--primary" @click="opened = true">Begin →</button>
+                <span class="cb-cover__count">{{ $questionCount }} {{ \Illuminate\Support\Str::plural('question', $questionCount) }}</span>
+            </div>
+        </div>
+    @endif
+
+    <div @if ($isLanding && ! $submitted) x-show="opened" @if ($openedInit === 'false') x-cloak @endif @endif>
     @if ($logoUrl)
         <img src="{{ $logoUrl }}" alt="{{ $form->title }} logo" style="height:40px;width:auto;margin-bottom:18px;">
     @endif
@@ -77,12 +117,22 @@
     </div>
     <p class="cb-doc__meta">
         {{ $form->team?->name ?? config('app.name') }}
-        @if ($isConversational && $renderFields->count() > 0)
+        @if ($isConversational && $renderFields->count() > 0 && ! $submitted)
             · <span x-text="(step + 1) + ' of ' + total"></span>
-        @elseif ($pageCount > 1)
+        @elseif ($pageCount > 1 && ! $submitted)
             · <span x-show="!showAll" x-text="'page ' + (page + 1) + ' of ' + pages"></span>
         @endif
     </p>
+
+    @if ($isConversational && $renderFields->count() > 1)
+        <div class="cb-progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="{{ $renderFields->count() }}" x-bind:aria-valuenow="step + 1" x-show="!submitted">
+            <div class="cb-progress__fill" x-bind:style="'width: ' + (((step + 1) / total) * 100) + '%'"></div>
+        </div>
+    @elseif ($pageCount > 1)
+        <div class="cb-progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="{{ $pageCount }}" x-bind:aria-valuenow="page + 1" x-show="!showAll && !submitted">
+            <div class="cb-progress__fill" x-bind:style="'width: ' + (((page + 1) / pages) * 100) + '%'"></div>
+        </div>
+    @endif
 
     @if ($form->description)
         <p class="cb-doc__desc">{{ $form->description }}</p>
@@ -91,10 +141,26 @@
     @if ($submitted)
         <div class="cb-doc__done">
             <span class="cb-stamp cb-stamp--ok cb-stamp--landed">RECEIVED</span>
+            @if ($completionTitle !== '')
+                <h2>{{ $completionTitle }}</h2>
+            @endif
             <p>{{ $form->settings['confirmation_message'] ?? 'Thanks for your submission.' }}</p>
 
             @if ($submittedQuizScore !== null && $submittedQuizMax !== null)
                 <p style="margin-top:10px;">Your Score: <strong>{{ $submittedQuizScore }} / {{ $submittedQuizMax }}</strong></p>
+            @endif
+
+            <p class="cb-receipt">{{ $serial }} · lodged {{ $receiptAt ?? now()->format('j M Y, H:i') }} · your copy</p>
+
+            @if ($redirectUrl || $showAnother)
+                <div class="cb-doc__done-actions">
+                    @if ($redirectUrl)
+                        <a class="cb-btn cb-btn--primary" href="{{ $redirectUrl }}" rel="noopener">{{ $redirectLabel }}</a>
+                    @endif
+                    @if ($showAnother)
+                        <a class="cb-btn" href="{{ route('forms.public', ['slug' => $form->slug]) }}">Submit another response</a>
+                    @endif
+                </div>
             @endif
         </div>
     @else
@@ -171,4 +237,5 @@
             </div>
         </form>
     @endif
+    </div>
 </div>

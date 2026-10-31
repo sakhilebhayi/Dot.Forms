@@ -37,7 +37,14 @@ themes + accent + width, the response desk. Those items are not redone here.
    youtube-nocookie/player iframes), divider — rendered on the published document and the canvas,
    collecting nothing.
 2. Element library completion: address, matrix, ranking, image selection; calculations.
-3. Landing-page presentation mode + completion-screen design + richer progress.
+3. Landing-page presentation mode + completion-screen design + richer progress — BUILT
+   (Phase 3): a "Cover" presentation (optional full-bleed cover image stored like the logo,
+   masthead kicker, display-scale title, Begin, an honest question count) fronting the unchanged
+   document; a receipt-style completion screen (RECEIVED stamp, owner heading, dashed tear line,
+   `FRM-xxx · lodged <date> · your copy`, optional "Submit another response" and an owner onward
+   link rendered as a button — respondents are never auto-redirected, and only http(s) URLs are
+   accepted at save or rendered); a 3px accent progress rule for conversational and paged
+   documents (260ms width transition, disabled under reduced motion).
 4. Motion pass (press transitions, document question transitions, reduced-motion audit) +
    mobile editing ergonomics.
 

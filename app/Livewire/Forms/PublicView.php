@@ -45,6 +45,9 @@ class PublicView extends Component
 
     public ?int $submittedQuizMax = null;
 
+    /** Set server-side at submit; printed on the respondent's receipt. */
+    public ?string $receiptAt = null;
+
     public function mount(string $slug): void
     {
         $preview = request()->boolean('preview');
@@ -210,6 +213,7 @@ class PublicView extends Component
         app(FormSubmissionIntegrationDispatcher::class)->dispatch($this->form, $submission);
 
         $this->submitted = true;
+        $this->receiptAt = $submission->submitted_at->format('j M Y, H:i');
         $this->reset('uploads', 'website', 'consentAccepted');
     }
 
