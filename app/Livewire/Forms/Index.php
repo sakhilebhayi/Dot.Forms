@@ -2,11 +2,10 @@
 
 namespace App\Livewire\Forms;
 
-use App\Models\Form;
+use App\Actions\Forms\CreateBlankForm;
 use App\Models\Team;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -44,32 +43,7 @@ class Index extends Component
     {
         Gate::authorize('canCreateForm', $this->team);
 
-        $title = 'Untitled Form';
-
-        $form = Form::query()->create([
-            'team_id' => $this->team->id,
-            'user_id' => Auth::id(),
-            'title' => $title,
-            'slug' => $this->uniqueSlug($title),
-            'settings' => [
-                'confirmation_message' => 'Thanks for your submission.',
-                'limit_responses' => null,
-                'open_at' => null,
-                'close_at' => null,
-                'theme' => 'light',
-                'brand_color' => '#4f46e5',
-                'custom_css' => null,
-                'retention_days' => null,
-                'consent_required' => false,
-                'consent_label' => 'I consent to processing my submitted data.',
-                'quiz_enabled' => false,
-                'quiz_answer_key' => [],
-                'conversational_mode' => false,
-                'crm_provider' => 'none',
-                'crm_webhook_url' => null,
-            ],
-            'is_published' => false,
-        ]);
+        $form = app(CreateBlankForm::class)($this->team, Auth::user());
 
         $this->redirectRoute('teams.forms.builder', ['team' => $this->team, 'form' => $form]);
     }
@@ -129,18 +103,7 @@ class Index extends Component
 
     protected function uniqueSlug(string $title): string
     {
-        $base = Str::slug($title) ?: 'form';
-        $slug = $base;
-        $counter = 1;
-
-        // slugs are unique across all teams (see forms table migration), so
-        // this check must bypass Form's per-team scope.
-        while (Form::withoutTeamScope()->where('slug', $slug)->exists()) {
-            $slug = $base.'-'.$counter;
-            $counter++;
-        }
-
-        return $slug;
+        return app(CreateBlankForm::class)->uniqueSlug($title);
     }
 
     public function render()

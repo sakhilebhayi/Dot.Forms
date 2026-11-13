@@ -2,7 +2,7 @@
     <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between;">
         <!-- Logo -->
         <a href="{{ route('dashboard') }}" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
-            <img src="{{ asset('images/dot_forms.png') }}" alt="Dot Forms" style="height: 38px; width: 38px; object-fit: contain;">
+            <img src="{{ asset('images/dot_forms.png') }}" alt="Dot.Forms" style="height: 38px; width: 38px; object-fit: contain;">
             <span style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: #1A1A1A; letter-spacing: -.01em;">dot<span style="color: var(--red);">.</span>forms</span>
         </a>
 

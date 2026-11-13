@@ -540,3 +540,73 @@ body.cb {
     }
     .cb-pagehead > .cb-serial { flex-basis: 100%; }
 }
+
+/* ---------------------------------------------------------------- R-50: the desk a person arrives at
+   The open book: on the left what this product is for and the ONE primary action; on the
+   right the master the company last worked on, in miniature, from its real fields. The
+   original logo sits above, with the way back to InfoDot opposite it. Tokens only. */
+.cb ::selection { background: var(--cb-carbon-wash); color: var(--cb-carbon-ink); }
+.cb-land { margin: 0 0 48px; }
+.cb-land__top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 30px; }
+.cb-land__top picture { display: block; line-height: 0; }
+.cb-land__logo { display: block; width: 84px; height: 84px; object-fit: contain; }
+.cb-land__back { display: flex; gap: 22px; font-size: 14px; font-weight: 500; }
+.cb-land__back a, .cb-land__also a, .cb-land__foot a { text-underline-offset: 3px; }
+
+.cb-land__open { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr); gap: 64px; align-items: start; }
+.cb-land__h1 {
+    font-size: 46px; line-height: 1.04; font-weight: 700; letter-spacing: -0.022em;
+    margin: 0 0 18px; max-width: 13em; text-wrap: balance; overflow-wrap: break-word; min-width: 0;
+}
+.cb-land__lead { font-size: 17px; line-height: 1.55; margin: 0 0 28px; max-width: 34em; }
+.cb-land__lead b { font-weight: 600; }
+.cb-land__act { margin: 0 0 16px; }
+.cb-btn.cb-land__go { height: 54px; padding: 0 30px; font-size: 16px; font-weight: 700; }
+.cb-land__also { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; font-size: 14px; font-weight: 500; }
+.cb-land__role { margin: 0; max-width: 34em; color: var(--cb-muted); }
+/* The one authored moment: the headline block and its action settle onto the desk. Transform
+   only, so the block is fully legible even if the animation never runs. */
+@keyframes cb-land-in { from { transform: translateY(10px); } }
+.cb-land__say { animation: cb-land-in 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+@media (prefers-reduced-motion: reduce) { .cb-land__say { animation: none; } }
+
+.cb-land__h2 { font-size: 14px; font-weight: 600; color: var(--cb-muted); margin: 0 0 10px; overflow-wrap: break-word; }
+.cb-land__sheet .cb-master { padding: 22px 24px 18px; }
+.cb-land__field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 13px 14px 11px; }
+.cb-land__flabel { font-weight: 600; overflow-wrap: break-word; min-width: 0; }
+.cb-land__ftype { font: 500 12px var(--cb-mono); color: var(--cb-muted); }
+.cb-land__line { display: block; grid-column: 1 / -1; height: 16px; border-bottom: 1px dotted var(--cb-boxline); }
+.cb-land__blank { margin: 0 0 6px; color: var(--cb-muted); max-width: 40em; }
+.cb-land__more { margin: -4px 0 12px; font-size: 13px; color: var(--cb-muted); }
+.cb-land__foot {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+    border-top: 1px solid var(--cb-rule); padding: 14px 0 0; margin: 6px 0 0; font-size: 13px;
+}
+.cb-land__count { font-variant-numeric: tabular-nums; margin-right: auto; }
+.cb-land__unset { border-style: dashed; box-shadow: none; padding-bottom: 28px; }
+.cb-land__unset .cb-land__line { height: 30px; }
+
+.cb-land__sum { margin: 0; font-size: 13px; color: var(--cb-muted); font-variant-numeric: tabular-nums; }
+.cb-land__rowacts { display: flex; gap: 6px; padding: 0 2px 12px; border-bottom: 1px solid var(--cb-rule); margin-bottom: 1px; }
+
+@media (max-width: 980px) {
+    .cb-land__open { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+}
+@media (max-width: 760px) {
+    .cb-land { margin-bottom: 36px; }
+    .cb-land__top { margin-bottom: 22px; }
+    .cb-land__logo { width: 64px; height: 64px; }
+    .cb-land__back { gap: 4px; }
+    .cb-land__back a, .cb-land__also a, .cb-land__foot a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
+    .cb-land__also, .cb-land__foot { margin-left: -8px; margin-right: -8px; gap: 0 8px; }
+    .cb-land__foot { margin-left: 0; margin-right: 0; }
+    .cb-land__h1 { font-size: 32px; }
+    .cb-land__lead { font-size: 16px; margin-bottom: 22px; }
+    .cb-btn.cb-land__go { width: 100%; justify-content: center; }
+    .cb-land__sheet .cb-master { padding: 18px 16px 14px; }
+    .cb-sec__head { flex-wrap: wrap; }
+    .cb-land__sum { order: 3; flex-basis: 100%; }
+    .cb-sec__head a { display: inline-flex; align-items: center; min-height: 44px; }
+    .cb-land__count { flex-basis: calc(100% - 110px); }
+    .cb-land__rowacts .cb-btn { height: 44px; padding: 0 14px; }
+}
