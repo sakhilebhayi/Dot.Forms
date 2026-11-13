@@ -8,6 +8,7 @@ use App\Http\Controllers\SchedulerProbeController;
 use App\Http\Controllers\StartFormController;
 use App\Http\Middleware\AllowFormEmbedding;
 use App\Http\Middleware\AuthenticateGuardian;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Livewire\Dashboard\Analytics as DashboardAnalytics;
 use App\Livewire\Forms\AiAnalytics;
 use App\Livewire\Forms\AiBuilder;
@@ -59,6 +60,8 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    // R-50: the company whose book is opened must still hold Dot.Forms. The public form below is deliberately outside.
+    EnsureCompanyEntitled::class,
 ])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

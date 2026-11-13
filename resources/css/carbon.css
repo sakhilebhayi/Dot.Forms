@@ -610,3 +610,38 @@ body.cb {
     .cb-land__count { flex-basis: calc(100% - 110px); }
     .cb-land__rowacts .cb-btn { height: 44px; padding: 0 14px; }
 }
+
+/* ---------------------------------------------------------------- R-50: the refusal sheet (entitlement/refused) */
+/* The company does not hold Dot.Forms: one sheet, the verdict stamped on it, one action. */
+.cb-gate { max-width: 720px; }
+.cb-gate__out { display: flex; margin: 0; }
+.cb-gate__out button {
+    background: none; border: 0; padding: 4px; font: 500 14px var(--cb-font); color: var(--cb-carbon);
+    text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.cb-gate__sheet { padding: 34px 36px 36px; }
+.cb-gate__h1 {
+    margin: 0 0 20px; padding: 0 0 20px; border-bottom: 2px solid var(--cb-ink);
+    font-size: 30px; line-height: 1.12; font-weight: 700; letter-spacing: -0.018em;
+    text-wrap: balance; overflow-wrap: break-word;
+}
+.cb-gate__body { margin: 0 0 28px; max-width: 62ch; font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+.cb-gate__foot { display: flex; align-items: center; justify-content: space-between; gap: 18px 24px; flex-wrap: wrap; }
+.cb a.cb-btn.cb-gate__go { height: 44px; padding: 0 20px; font-size: 14px; color: var(--cb-sheet); }
+.cb-gate__stamp { font-size: 12px; padding: 5px 11px; }
+.cb-gate__others { margin: 40px 0 0; }
+.cb-gate__h2 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--cb-muted); }
+.cb-gate__list { list-style: none; margin: 0; padding: 0; }
+.cb-gate__list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 10px 2px; border-bottom: 1px solid var(--cb-rule);
+}
+.cb-gate__list b { font-weight: 600; font-size: 15px; min-width: 0; overflow-wrap: break-word; }
+.cb-gate__list form { margin: 0; flex: none; }
+@media (max-width: 760px) {
+    .cb-gate__sheet { padding: 24px 18px 24px; }
+    .cb-gate__h1 { font-size: 24px; }
+    .cb a.cb-btn.cb-gate__go { width: 100%; justify-content: center; }
+    .cb-gate__out button { min-height: 44px; padding: 0 8px; }
+    .cb-gate__list .cb-btn { height: 44px; padding: 0 16px; }
+}
