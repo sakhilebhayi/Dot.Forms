@@ -63,8 +63,8 @@ class EntitlementRefusal
             ],
             'no_personal_access', 'company_required' => [
                 'stamp' => 'COMPANY NEEDED',
-                'title' => 'Dot.Forms is held by a company',
-                'body' => 'A personal workspace does not hold this platform. Add or join a company in InfoDot, then switch Dot.Forms on for it from Platforms.',
+                'title' => 'Dot.Forms needs a company that has switched it on',
+                'body' => 'A personal workspace does not hold this platform. Add or join a company in InfoDot and switch Dot.Forms on for it from Platforms. Nothing in this workspace has been removed.',
             ],
             'temporarily_unavailable', 'not_launched' => [
                 'stamp' => 'UNAVAILABLE',

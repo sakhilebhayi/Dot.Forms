@@ -34,6 +34,9 @@ class EnsureCompanyEntitled
         'terms.show', 'policy.show', 'team-invitations.accept',
     ];
 
+    /** Session key: redeem's `entitled` for the person's personal workspace, remembered at sign-in (absent: not set). */
+    public const PERSONAL = 'infodot.personal_entitled';
+
     public function __construct(private readonly EntitlementClient $entitlements) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -50,9 +53,23 @@ class EnsureCompanyEntitled
 
         $team = $this->company($request, $user);
 
-        // A personal workspace, or a company InfoDot does not know: nothing to ask. Sign-in decided who came in.
-        if (! $team || $team->personal_team || blank($team->infodot_team_uuid)) {
+        // A personal workspace, or a team InfoDot does not know: the read endpoint is never asked. What InfoDot said
+        // about the person's personal workspace at sign-in decides: exactly false is a refusal (individuals hold
+        // the free core only); true, or nothing remembered, carries on.
+        if (! $team) {
             return $next($request);
+        }
+
+        if ($team->personal_team || blank($team->infodot_team_uuid)) {
+            if (! $request->hasSession() || $request->session()->get(self::PERSONAL) !== false) {
+                return $next($request);
+            }
+
+            return EntitlementRefusal::response(
+                'company_required',
+                null,
+                $user->allTeams()->reject(fn ($other) => $other->id === $team->id || $other->personal_team || blank($other->infodot_team_uuid)),
+            );
         }
 
         $answer = $this->entitlements->forCompany((string) $team->infodot_team_uuid);

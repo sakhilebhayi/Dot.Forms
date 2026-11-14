@@ -357,6 +357,111 @@ class CompanyEntitlementTest extends TestCase
         Http::assertNothingSent();
     }
 
+    // ------------------------------------------------------------------ personal workspaces (individuals hold the free core only)
+
+    private const PERSONAL = '44444444-4444-4444-8444-444444444444';
+
+    /** Ann signs in with one entitled company and a personal workspace marked as given, then works in her local personal team. */
+    private function signInThenWorkPersonally(?bool $personalEntitled): array
+    {
+        $this->signIn('ann@acme.test', [
+            $this->redeemTeam(self::PERSONAL, "Ann's Team", 'owner', $personalEntitled, $personalEntitled === false ? 'no_personal_access' : null, personal: true),
+            $this->redeemTeam(self::ACME, 'Acme Ltd', 'owner', $personalEntitled === null ? null : true),
+        ], self::ACME)->assertRedirect(route('dashboard'));
+
+        // The test client does not carry the session between requests; hand over what sign-in remembered.
+        $this->withSession(session()->has(EnsureCompanyEntitled::PERSONAL) ? [EnsureCompanyEntitled::PERSONAL => session(EnsureCompanyEntitled::PERSONAL)] : []);
+
+        $ann = User::where('email', 'ann@acme.test')->firstOrFail();
+        $personal = $ann->personalTeam();
+        $form = Form::withoutTeamScope()->create(['team_id' => $personal->id, 'user_id' => $ann->id, 'title' => 'Private stock count', 'slug' => 'stock-'.Str::lower(Str::random(6)), 'is_published' => true]);
+        $ann->forceFill(['current_team_id' => $personal->id])->save();
+
+        $this->actingAs($ann->fresh());
+
+        return [$ann->fresh(), $personal, $form, Team::where('infodot_team_uuid', self::ACME)->firstOrFail()];
+    }
+
+    public function test_a_personal_workspace_infodot_marked_not_entitled_is_refused_without_asking_the_read_endpoint(): void
+    {
+        [$ann, $personal, $form, $acme] = $this->signInThenWorkPersonally(false);
+        $this->assertFalse(session(EnsureCompanyEntitled::PERSONAL));
+
+        $this->infodotSays([self::readUrl(self::ACME) => Http::response(self::platforms(self::ACME, true, 'active'))]);
+
+        foreach ([route('dashboard'), route('teams.forms', $personal), route('teams.forms.submissions', [$personal, $form])] as $url) {
+            $response = $this->get($url)->assertStatus(403)
+                ->assertSee('Dot.Forms needs a company that has switched it on')
+                ->assertSee('href="https://infodot.test/platforms/forms"', false)
+                ->assertSee('name="team_id" value="'.$acme->id.'"', false)
+                ->assertDontSee('Private stock count');
+
+            $this->assertSame(1, substr_count($response->getContent(), 'data-primary-action'), $url);
+        }
+
+        $this->post(route('teams.forms.store', $personal))->assertStatus(403);
+        Http::assertNothingSent();
+
+        // Nothing in the workspace is deleted or altered, and its published form stays public.
+        $this->assertSame(1, Form::withoutTeamScope()->where('team_id', $personal->id)->count());
+        $this->assertTrue((bool) $form->fresh()->is_published);
+        $this->get(route('forms.public', $form->slug))->assertOk()->assertSee('Private stock count');
+        $this->get(route('profile.show'))->assertOk();
+
+        // The entitled company can still be switched to.
+        $this->put(route('current-team.update'), ['team_id' => $acme->id])->assertRedirect();
+        $this->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_a_team_with_no_infodot_company_is_refused_the_same_way(): void
+    {
+        [$ann] = $this->signInThenWorkPersonally(false);
+        $local = Team::forceCreate(['user_id' => $ann->id, 'name' => 'Local Co', 'personal_team' => false]);
+        $ann->forceFill(['current_team_id' => $local->id])->save();
+        $this->infodotSays([]);
+
+        $this->get(route('teams.forms', $local))->assertStatus(403)->assertSee('Dot.Forms needs a company that has switched it on');
+        Http::assertNothingSent();
+    }
+
+    public function test_a_personal_workspace_infodot_marked_entitled_carries_on(): void
+    {
+        [$ann, $personal] = $this->signInThenWorkPersonally(true);
+        $this->assertTrue(session(EnsureCompanyEntitled::PERSONAL));
+        $this->infodotSays([]);
+
+        $this->get(route('dashboard'))->assertOk();
+        $this->get(route('teams.forms', $personal))->assertOk()->assertSee('Private stock count');
+        Http::assertNothingSent();
+    }
+
+    public function test_with_no_key_at_sign_in_nothing_is_remembered_and_the_personal_workspace_carries_on(): void
+    {
+        [$ann, $personal] = $this->signInThenWorkPersonally(null);
+        $this->assertFalse(session()->has(EnsureCompanyEntitled::PERSONAL));
+        $this->infodotSays([]);
+
+        $this->get(route('dashboard'))->assertOk();
+        $this->get(route('teams.forms', $personal))->assertOk()->assertSee('Private stock count');
+        Http::assertNothingSent();
+    }
+
+    public function test_a_later_sign_in_without_the_key_forgets_an_earlier_refusal(): void
+    {
+        $this->signInThenWorkPersonally(false);
+        $this->signIn('ann@acme.test', [$this->redeemTeam(self::PERSONAL, "Ann's Team", 'owner', personal: true), $this->redeemTeam(self::ACME, 'Acme Ltd', 'owner')], self::ACME)->assertRedirect();
+
+        $this->assertFalse(session()->has(EnsureCompanyEntitled::PERSONAL));
+    }
+
+    public function test_the_personal_refusal_is_off_with_the_flag(): void
+    {
+        [$ann, $personal] = $this->signInThenWorkPersonally(false);
+        config(['ecosystem.infodot.entitlement_check' => false]);
+
+        $this->get(route('teams.forms', $personal))->assertOk();
+    }
+
     public function test_exempt_routes_make_no_call(): void
     {
         [$owner, $team, $form] = $this->company();
