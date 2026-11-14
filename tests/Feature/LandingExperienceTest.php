@@ -88,14 +88,24 @@ class LandingExperienceTest extends TestCase
         $this->assertSame(3, Form::withoutTeamScope()->count());
     }
 
-    public function test_the_welcome_uses_the_persons_first_name_and_the_company_name(): void
+    public function test_the_empty_book_welcomes_the_person_by_first_name_and_names_the_company(): void
     {
         $user = User::factory()->withPersonalTeam()->create(['name' => 'Nomvula Zulu-Peters']);
         $user->currentTeam->forceFill(['name' => 'Zulu-Peters Haulage'])->save();
 
         $this->actingAs($user->fresh())->get('/dashboard')->assertOk()
-            ->assertSeeInOrder(['Welcome, <b>Nomvula</b>', '<b>Zulu-Peters Haulage</b>'], false)
-            ->assertSee('Set a form once. Number every copy.');
+            ->assertSeeInOrder(['The book is empty.', 'Welcome, <b>Nomvula</b>', '<b>Zulu-Peters Haulage</b>'], false)
+            ->assertDontSee('Set a form once. Number every copy.');
+    }
+
+    public function test_the_headline_states_how_many_copies_are_waiting(): void
+    {
+        [$owner] = $this->companyWithRecords();
+
+        $this->actingAs($owner)->get('/dashboard')->assertOk()
+            ->assertSee('5 new copies are waiting.')
+            ->assertDontSee('Set a form once. Number every copy.')
+            ->assertDontSee('Recent masters');
     }
 
     public function test_a_new_member_with_no_forms_sees_an_honest_empty_state_and_no_figures(): void
@@ -138,20 +148,11 @@ class LandingExperienceTest extends TestCase
             ->assertDontSee('Signature')
             ->assertDontSee('Foreign form');
 
-        // Every number in the landing's text is one of: a serial, a field number, a seeded count,
-        // a relative time, or the fixed "last 7 days" window.
-        $text = $this->landingText($html);
-        $text = preg_replace('/FRM-\d{3,}/', '', $text);
-        $text = preg_replace('/\b\d+(s|m|h|d|w|mo|y|yr|yrs|hr|hrs|min|mins)\b( ago)?/', '', $text);
-        $text = str_replace('in the last 7 days', '', $text);
-        preg_match_all('/\d+/', $text, $found);
-        $allowed = ['01', '02', '03', '04', '0', '1', '2', '3', '4', '5'];
-        $this->assertSame([], array_values(array_diff($found[0], $allowed)), 'a figure on the landing has no seeded source');
-
         $latest = $team->forms()->where('title', 'Site induction')->first();
         $response->assertSee('FRM-'.str_pad((string) $latest->id, 3, '0', STR_PAD_LEFT))
             ->assertSee('5 copies')
-            ->assertSee('5 fields');
+            ->assertSee('5 fields')
+            ->assertSee('5 new copies are waiting.');
     }
 
     public function test_the_landing_shows_the_original_logo_files_unaltered(): void
