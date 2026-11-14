@@ -18,7 +18,7 @@ use Tests\TestCase;
 
 /**
  * R-51: Dot.Forms takes the shared Dot UI. The signed-in spine carries the "Dot Apps" switcher; the in-page filters
- * (the book, the copies) are the shared compact filter. Dot.Forms has no header search, so none is added. Public form
+ * (the book, the copies) are the shared compact filter. The signed-in spine carries the shared search pill, a plain GET to the book's own filter. Public form
  * pages (outside the signed-in area) get neither.
  */
 class DotUiHeaderTest extends TestCase
@@ -121,7 +121,10 @@ class DotUiHeaderTest extends TestCase
         $html = $this->actingAs($owner)->get(route('teams.forms', $team))->assertOk()->getContent();
         $this->assertStringContainsString('class="dsr-filter"', $html);
         $this->assertStringContainsString('wire:model.live.debounce.300ms="search"', $html);
-        $this->assertStringNotContainsString('dsr-input', $html, 'no pill: Dot.Forms has no header search');
+        // R-51 desk: the spine's pill only GETs the book's filter (?q=); the filter's own wiring is untouched above.
+        $this->assertSame(1, substr_count($html, 'class="dsr-input"'), 'one pill, in the spine');
+        $this->assertStringContainsString('action="'.route('teams.forms', $team).'"', $html);
+        $this->assertMatchesRegularExpression('/<input[^>]*name="q"[^>]*class="dsr-input"|<input[^>]*class="dsr-input"[^>]*name="q"/', $html);
 
         $this->actingAs($owner);
         Livewire::test(Index::class, ['team' => $team])

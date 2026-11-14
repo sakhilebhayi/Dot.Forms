@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-search.css') }}">
     <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-switcher.css') }}">
     <script src="{{ asset('dot-ui/js/dot-switcher.js') }}" defer></script>
+    <script src="{{ asset('dot-ui/js/dot-search.js') }}" defer></script>
     @vite(['resources/css/signed-in.css', 'resources/css/carbon.css', 'resources/js/app.js'])
     @livewireStyles
     <style>[x-cloak]{display:none!important}</style>
@@ -36,6 +37,12 @@
                 @endif
                 <a href="{{ route('profile.show') }}" @class(['cb-on' => request()->routeIs('profile.show')])>Account</a>
             </nav>
+            @if ($team)
+                {{-- R-51: the shared search pill, a plain GET to the book's own filter (Livewire\Forms\Index, ?q=). No search logic here. --}}
+                <div class="cb-spine__find">
+                    <x-dot.search action="{{ route('teams.forms', $team) }}" name="q" placeholder="Find a form" label="Find a form" hint="Ctrl K" />
+                </div>
+            @endif
             @auth
                 <div class="cb-spine__co">
                     <x-dot.switcher platform="forms" :company="$team && ! $team->personal_team ? $team->infodot_team_uuid : null" :company-name="$team?->name" logos="/dot-ui/img/platforms" />
