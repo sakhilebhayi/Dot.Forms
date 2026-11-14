@@ -16,7 +16,7 @@
     <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;margin:0 0 16px;">
         <div>
             <label class="cb-label" for="form-search">Find a form</label>
-            <input id="form-search" class="cb-input" type="text" wire:model.live.debounce.300ms="search" placeholder="Search by title…">
+            <x-dot.filter-search id="form-search" name="search" wire:model.live.debounce.300ms="search" placeholder="Search by title…" label="Find a form" />
         </div>
         <div>
             <label class="cb-label" for="form-status">Show</label>

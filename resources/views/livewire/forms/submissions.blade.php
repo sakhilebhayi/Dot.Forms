@@ -18,7 +18,7 @@
     <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;margin:0 0 16px;">
         <div>
             <label class="cb-label" for="sub-search-submissions">Search submissions</label>
-            <input id="sub-search-submissions" class="cb-input" type="text" wire:model.live.debounce.300ms="search" placeholder="Search inside submission data">
+            <x-dot.filter-search id="sub-search-submissions" name="search" wire:model.live.debounce.300ms="search" placeholder="Search inside submission data" label="Search submissions" />
         </div>
         <div>
             <label class="cb-label" for="sub-status-filter">Show</label>

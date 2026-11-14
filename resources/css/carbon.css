@@ -54,7 +54,7 @@ body.cb {
 .cb :focus-visible { outline: 2px solid var(--cb-carbon); outline-offset: 2px; transition: none; }
 
 /* ---------------------------------------------------------------- the spine */
-.cb-spine { border-bottom: 2px solid var(--cb-ink); background: var(--cb-paper); }
+.cb-spine { border-bottom: 2px solid var(--cb-ink); background: var(--cb-paper); position: relative; z-index: 20; }
 .cb-spine__inner {
     max-width: 1240px; margin: 0 auto; padding: 0 20px;
     display: flex; align-items: stretch; gap: 18px; min-height: 54px;
@@ -644,4 +644,24 @@ body.cb {
     .cb a.cb-btn.cb-gate__go { width: 100%; justify-content: center; }
     .cb-gate__out button { min-height: 44px; padding: 0 8px; }
     .cb-gate__list .cb-btn { height: 44px; padding: 0 16px; }
+}
+
+/* ---------------------------------------------------------------- shared Dot UI (R-51)
+   Host mapping: the dropdown/filter surfaces and the switcher button follow The Carbon Book in both schemes. The
+   search pill itself is InfoDot's and is not mapped. The switcher panel stays the shared paper sheet. */
+:root {
+    --dsr-panel: var(--cb-sheet);
+    --dsr-hover: var(--cb-sheet-2);
+    --dsr-rule: var(--cb-rule);
+    --dsr-rule-strong: var(--cb-boxline);
+    --dsr-text: var(--cb-ink);
+    --dsr-text-2: var(--cb-muted);
+    --dsr-text-3: var(--cb-muted);
+}
+.cb-spine .dsw {
+    --dsw-font: var(--cb-font);
+    --dsw-btn-ink: var(--cb-ink);
+    --dsw-btn-border: var(--cb-boxline);
+    --dsw-btn-bg-hover: var(--cb-sheet-2);
+    --dsw-focus: var(--cb-carbon);
 }
