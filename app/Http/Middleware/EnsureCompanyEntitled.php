@@ -65,11 +65,11 @@ class EnsureCompanyEntitled
                 return $next($request);
             }
 
-            return EntitlementRefusal::response(
+            return $this->refuse($request, fn () => EntitlementRefusal::response(
                 'company_required',
                 null,
                 $user->allTeams()->reject(fn ($other) => $other->id === $team->id || $other->personal_team || blank($other->infodot_team_uuid)),
-            );
+            ));
         }
 
         $answer = $this->entitlements->forCompany((string) $team->infodot_team_uuid);
@@ -78,11 +78,24 @@ class EnsureCompanyEntitled
             return $next($request);
         }
 
-        return EntitlementRefusal::response(
+        return $this->refuse($request, fn () => EntitlementRefusal::response(
             $answer['status'],
             $team->name,
             $user->allTeams()->reject(fn ($other) => $other->id === $team->id),
-        );
+        ));
+    }
+
+    /**
+     * Livewire throws away any non-redirect response a persistent middleware returns, so a refusal page would let a
+     * component update run. On a Livewire update the refusal must abort: nothing runs and no component comes back.
+     */
+    private function refuse(Request $request, Closure $page): Response
+    {
+        if ($request->headers->has('X-Livewire') || request()->headers->has('X-Livewire')) {
+            abort(403);
+        }
+
+        return $page();
     }
 
     /** The company whose book this request opens: the one in the address when the person belongs to it, else their current one. */

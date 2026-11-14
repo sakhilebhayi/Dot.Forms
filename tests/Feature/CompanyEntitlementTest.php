@@ -15,6 +15,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Livewire\Mechanisms\PersistentMiddleware\PersistentMiddleware;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -460,6 +461,50 @@ class CompanyEntitlementTest extends TestCase
         config(['ecosystem.infodot.entitlement_check' => false]);
 
         $this->get(route('teams.forms', $personal))->assertOk();
+    }
+
+    /** A real Livewire update request (not the test harness, which skips persistent middleware) for the forms index. */
+    private function livewireSnapshot(Team $team): string
+    {
+        $page = $this->get(route('teams.forms', $team))->assertOk()->getContent();
+        preg_match('/wire:snapshot="([^"]+)"[^>]*wire:id="[^"]+"[^>]*wire:name="forms\.index"|wire:name="forms\.index"[^>]*wire:snapshot="([^"]+)"|wire:snapshot="([^"]+)"/', $page, $m);
+        $snapshot = html_entity_decode(collect(array_slice($m, 1))->filter()->first() ?? '', ENT_QUOTES);
+        $this->assertNotSame('', $snapshot, 'the forms index component is on the page');
+
+        return $snapshot;
+    }
+
+    private function livewireCreateForm(string $snapshot)
+    {
+        return $this->postJson(Livewire::getUpdateUri(), ['components' => [[
+            'snapshot' => $snapshot,
+            'updates' => [],
+            'calls' => [['path' => '', 'method' => 'createForm', 'params' => []]],
+        ]]], ['X-Livewire' => 'true']);
+    }
+
+    public function test_a_livewire_update_is_refused_once_the_company_loses_the_platform(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->infodotSays([self::readUrl(self::ACME) => Http::sequence()
+            ->push(self::platforms(self::ACME, true, 'active'))
+            ->push(self::platforms(self::ACME, false, 'suspended'))]);
+        $this->actingAs($owner);
+        $before = Form::withoutTeamScope()->where('team_id', $team->id)->count();
+        $snapshot = $this->livewireSnapshot($team);
+
+        // While the company holds the platform the action works.
+        $worked = $this->livewireCreateForm($snapshot);
+        $this->assertNotSame(403, $worked->getStatusCode());
+        $this->assertSame($before + 1, Form::withoutTeamScope()->where('team_id', $team->id)->count());
+
+        // The cached answer expires, InfoDot now says no: the same action is refused and returns no component.
+        $this->travel(EntitlementClient::ANSWER_TTL + 1)->seconds();
+        $response = $this->livewireCreateForm($snapshot);
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertArrayNotHasKey('components', (array) $response->json());
+        $this->assertSame($before + 1, Form::withoutTeamScope()->where('team_id', $team->id)->count(), 'the data is unchanged');
     }
 
     public function test_exempt_routes_make_no_call(): void
