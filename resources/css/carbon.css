@@ -665,3 +665,6 @@ body.cb {
     --dsw-btn-bg-hover: var(--cb-sheet-2);
     --dsw-focus: var(--cb-carbon);
 }
+/* The host's `.cb a` link colour (carbon blue, light in dark mode) would win over the package's zero-specificity
+   `a { color: inherit }` and tint the tile names on their white plates. The switcher keeps its own ink. */
+.cb .dsw a { color: inherit; }

@@ -222,6 +222,20 @@ class DotUiHeaderTest extends TestCase
         $this->assertStringNotContainsString('<style', $switcher);
     }
 
+    public function test_the_interim_way_back_goes_where_the_switcher_replaces_it_and_stays_where_it_does_not(): void
+    {
+        [$owner] = $this->company();
+        $this->fake([$this->readUrl(self::ACME) => Http::response($this->body(self::ACME, $this->rows()))]);
+
+        $res = $this->actingAs($owner)->get(route('dashboard'))->assertOk();
+        $res->assertDontSee('cb-land__back', false);
+        $this->assertStringContainsString('https://infodot.test/home', $res->getContent(), 'the switcher still leads to InfoDot');
+        $this->assertStringContainsString('https://infodot.test/platforms', $res->getContent());
+
+        $personal = User::factory()->withPersonalTeam()->create();
+        $this->actingAs($personal)->get(route('dashboard'))->assertOk()->assertSee('cb-land__back', false);
+    }
+
     public function test_the_public_form_page_gets_neither_switcher_nor_search(): void
     {
         [$owner, $team] = $this->company();

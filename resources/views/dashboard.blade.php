@@ -12,10 +12,14 @@
                 <source srcset="{{ asset('images/dot_forms-light.png') }}" media="(prefers-color-scheme: dark)">
                 <img class="cb-land__logo" src="{{ asset('images/dot_forms.png') }}" alt="Dot.Forms" width="96" height="96">
             </picture>
-            <nav class="cb-land__back" aria-label="Dot ecosystem">
-                <a href="{{ $infodotUrl }}/home">InfoDot</a>
-                <a href="{{ $infodotUrl }}/platforms">Platforms</a>
-            </nav>
+            {{-- R-51: the spine's Dot Apps switcher replaces this way back (it has the InfoDot tile and "See all platforms").
+                 A personal or unlinked workspace gets no platform list from the switcher, so only there it stays. --}}
+            @if (! $team || $team->personal_team || blank($team->infodot_team_uuid))
+                <nav class="cb-land__back" aria-label="Dot ecosystem">
+                    <a href="{{ $infodotUrl }}/home">InfoDot</a>
+                    <a href="{{ $infodotUrl }}/platforms">Platforms</a>
+                </nav>
+            @endif
         </div>
 
         <div class="cb-land__open">
