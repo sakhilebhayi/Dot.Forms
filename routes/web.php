@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\CspReportController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuardianHealthController;
 use App\Http\Controllers\SchedulerProbeController;
+use App\Http\Controllers\StartFormController;
 use App\Http\Middleware\AllowFormEmbedding;
 use App\Http\Middleware\AuthenticateGuardian;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Livewire\Dashboard\Analytics as DashboardAnalytics;
 use App\Livewire\Forms\AiAnalytics;
 use App\Livewire\Forms\AiBuilder;
@@ -57,10 +60,10 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    // R-50: the company whose book is opened must still hold Dot.Forms. The public form below is deliberately outside.
+    EnsureCompanyEntitled::class,
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/dashboard/analytics', DashboardAnalytics::class)
         ->name('dashboard.analytics');
@@ -72,6 +75,9 @@ Route::middleware([
             'team' => $team,
         ]);
     })->name('teams.forms');
+
+    // The desk's primary action (R-50): set a blank form, then open it on the press.
+    Route::post('/teams/{team}/forms', StartFormController::class)->name('teams.forms.store');
 
     Route::get('/teams/{team}/forms/{form}/builder', Builder::class)
         ->name('teams.forms.builder');

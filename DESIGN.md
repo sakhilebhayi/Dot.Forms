@@ -49,8 +49,18 @@ trusts paper.
 
 ## Page layouts
 Each page is the matching part of the book, never one card grid:
-- Desk (dashboard): the open book — a short register of recent masters beside the latest copies
-  and the tallies that matter (copies this week, awaiting stamp, completion).
+- Desk (dashboard, R-50): the page a person arrives at from InfoDot. The original logo with the
+  way back (InfoDot, Platforms) opposite it; then the open book: on the left the headline, a
+  welcome from the person's first name and the company's name, and ONE primary action
+  (`data-primary-action`: "Set a new form" for people who may set forms, "Open the book" for
+  viewers); on the right the master the company last worked on, in miniature, from its real
+  fields (`cb-land__*`), or a blank dashed sheet when the book is empty. Below, the short
+  register of recent masters with the three counts as one plain sentence, never tiles.
+- The refusal sheet (R-50, `entitlement/refused`): shown with HTTP 403 when the company does not hold
+  Dot.Forms. The original logo, then one sheet: the plain statement as the heading on a 2px rule, two
+  sentences, ONE action ("Open Platforms in InfoDot", `data-primary-action`) and the verdict as a stamp
+  beside it (`cb-gate__*`). Below, when the person has other companies here, a short register to switch.
+  Nothing from the book is on it.
 - The book (forms index): the register, full width; search above as a ruled line.
 - The press (builder): tray · master sheet · settings, 240/1fr/280; on a phone the tray becomes
   a bottom row and settings stack under the selected field.

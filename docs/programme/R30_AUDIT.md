@@ -123,7 +123,7 @@ system-level design (Yard, Achromatic Ledger) that reads as engineered.
     Dot.Mines inspection pack, Dot.Agents-assisted workflows.
 15. Versioned public API + signed webhooks + integration logs.
 16. AI response analysis v2 (theme clustering with citations), AI form review gate.
-17. Payment fields — **blocked on the Paystack decision** (Billing owns payments; never-live
+17. Payment fields — **blocked on the Paystack decision** (payments are owned centrally; never-live
     constraint stands).
 
 Classification per feature (user value / effort / risk) is recorded in the register as phases
