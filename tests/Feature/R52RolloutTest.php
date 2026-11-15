@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Forms\HeaderSearch;
+use App\Livewire\Forms\Index;
 use App\Livewire\Forms\PublicView;
 use App\Models\Form;
 use App\Models\Team;
@@ -54,7 +55,7 @@ class R52RolloutTest extends TestCase
             // the mobile menu: a button that opens the drawer, and the drawer itself
             $this->assertStringContainsString('data-dh-menu-button', $html, $url);
             $this->assertStringContainsString('id="dh-drawer"', $html, $url);
-            $this->assertStringContainsString('/dot-ui/js/dot-nav.js', $html, $url);
+            $this->assertStringContainsString('/dot-ui/js/dot-ui-core.min.js', $html, $url);
         }
     }
 
@@ -211,6 +212,19 @@ class R52RolloutTest extends TestCase
         $this->assertStringNotContainsString('action="'.route('teams.forms', $otherTeam).'"', $html);
     }
 
+    // ---- 0.6.1 tenant sweep: a title OR description match never reaches another company's forms ----
+
+    public function test_the_books_own_filter_and_the_header_search_keep_the_company_scope_beside_the_or(): void
+    {
+        [$owner, $team] = $this->company('Acme Ltd', 'Acme zebra form');
+        [, , $other] = $this->company('Globex', 'Globex zebra form');   // title matches
+        $other->forceFill(['description' => 'a zebra description'])->save(); // and so does the description
+
+        $this->actingAs($owner);
+        Livewire::test(Index::class, ['team' => $team])->set('search', 'zebra')->assertSee('Acme zebra form')->assertDontSee('Globex zebra form');
+        Livewire::test(HeaderSearch::class)->set('query', 'zebra')->assertSee('Acme zebra form')->assertDontSee('Globex zebra form');
+    }
+
     // ---- Roboto, self-hosted ----
 
     public function test_roboto_is_declared_and_its_files_are_served_from_the_apps_origin(): void
@@ -241,7 +255,7 @@ class R52RolloutTest extends TestCase
                 $this->assertStringNotContainsString($host, $html);
             }
             $this->assertMatchesRegularExpression('/<html[^>]*class="[^"]*dot-roboto/', $html);
-            $this->assertStringContainsString('/dot-ui/css/dot-roboto.css', $html);
+            $this->assertMatchesRegularExpression('#/dot-ui/css/(dot-ui|dot-roboto)\.min\.css#', $html);
         }
     }
 

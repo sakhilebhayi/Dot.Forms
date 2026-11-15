@@ -240,7 +240,7 @@ class DeskDashboardTest extends TestCase
         $this->assertStringContainsString('data-dh-search', $html);
         $this->assertStringContainsString('role="search"', $html);
         $this->assertStringContainsString('action="'.route('teams.forms', $team).'"', $html);
-        $this->assertStringContainsString('/dot-ui/js/dot-search.js', $html);
+        $this->assertStringContainsString('/dot-ui/js/dot-ui-core.min.js', $html);
     }
 
     public function test_a_person_with_no_company_gets_the_add_company_action_and_no_pill(): void

@@ -8,16 +8,10 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
-    @include('partials.roboto')
-    {{-- R-52: the shared Dot UI header system (dot-ui 0.6.0), self-hosted; the host mapping is in carbon.css --}}
-    <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-tokens.css') }}">
-    <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-search.css') }}">
-    <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-switcher.css') }}">
-    <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-header.css') }}">
-    <script src="{{ asset('dot-ui/js/dot-search.js') }}" defer></script>
-    <script src="{{ asset('dot-ui/js/dot-search-results.js') }}" defer></script>
-    <script src="{{ asset('dot-ui/js/dot-switcher.js') }}" defer></script>
-    <script src="{{ asset('dot-ui/js/dot-nav.js') }}" defer></script>
+    {{-- R-52 / dot-ui 0.6.1: Roboto, type scale, tokens, search, switcher and header in ONE minified stylesheet, first in the head; the host mapping is in carbon.css --}}
+    <link rel="preload" href="{{ asset('dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-ui.min.css') }}">
+    <script src="{{ asset('dot-ui/js/dot-ui-core.min.js') }}" defer></script>
     @vite(['resources/css/signed-in.css', 'resources/css/carbon.css', 'resources/js/app.js'])
     @livewireStyles
 </head>

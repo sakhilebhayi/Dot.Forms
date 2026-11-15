@@ -209,12 +209,11 @@ class DotUiHeaderTest extends TestCase
 
         $html = $this->actingAs($owner)->get(route('dashboard'))->getContent();
 
-        foreach (['dot-roboto', 'dot-type', 'dot-tokens', 'dot-search', 'dot-switcher', 'dot-header'] as $css) {
-            $this->assertFileExists(public_path('dot-ui/css/'.$css.'.css'));
-            $this->assertMatchesRegularExpression('#<link rel="stylesheet" href="[^"]*/dot-ui/css/'.$css.'\.css">#', $html);
-        }
-        $this->assertFileExists(public_path('dot-ui/js/dot-switcher.js'));
-        $this->assertStringContainsString('/dot-ui/js/dot-switcher.js', $html);
+        // dot-ui 0.6.1: one minified stylesheet (roboto, type, tokens, search, switcher, header) and one minified core script.
+        $this->assertFileExists(public_path('dot-ui/css/dot-ui.min.css'));
+        $this->assertMatchesRegularExpression('#<link rel="stylesheet" href="[^"]*/dot-ui/css/dot-ui\.min\.css">#', $html);
+        $this->assertFileExists(public_path('dot-ui/js/dot-ui-core.min.js'));
+        $this->assertStringContainsString('/dot-ui/js/dot-ui-core.min.js', $html);
 
         // The shared markup adds no style="" attribute and no inline script (the layout's own x-cloak rule predates it).
         $start = strpos($html, 'data-dsw');
@@ -250,8 +249,8 @@ class DotUiHeaderTest extends TestCase
         $this->assertStringNotContainsString('data-dsw', $html);
         $this->assertStringNotContainsString('dsr', $html);
         $this->assertStringNotContainsString('data-dh', $html, 'no header on the public document');
-        $this->assertStringNotContainsString('dot-nav.js', $html);
-        $this->assertStringContainsString('/dot-ui/css/dot-roboto.css', $html, 'R-52: the document is Roboto too');
+        $this->assertStringNotContainsString('dot-ui-core', $html);
+        $this->assertStringContainsString('/dot-ui/css/dot-roboto.min.css', $html, 'R-52: the document is Roboto too');
         Http::assertNothingSent();
     }
 
@@ -261,6 +260,6 @@ class DotUiHeaderTest extends TestCase
 
         $this->assertStringNotContainsString('data-dsw', $html);
         $this->assertStringNotContainsString('data-dh', $html);
-        $this->assertStringNotContainsString('dot-nav.js', $html);
+        $this->assertStringNotContainsString('dot-ui-core', $html);
     }
 }
