@@ -60,7 +60,7 @@ class DashboardAnalyticsTest extends TestCase
             ->assertSee('Completion Rate')
             ->assertSee('Avg Time To Complete')
             ->assertSee('Customer Survey', false)
-            ->assertSee('submission-chart-data', false);
+            ->assertSee('data-tally-chart', false);
     }
 
     public function test_analytics_page_is_a_single_root_livewire_view(): void

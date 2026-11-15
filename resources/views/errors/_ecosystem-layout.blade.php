@@ -132,7 +132,7 @@
                         <div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;">
                             @foreach ($discover as $platform)
                                 <a href="{{ $platform['url'] }}" class="press" style="flex: 0 0 auto; scroll-snap-align: start; display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 7px; background: #ffffff; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; white-space: nowrap;">
-                                    <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: {{ $platform['accent'] ?? 'var(--accent)' }}; color: #ffffff; font-size: 13px; font-weight: 700; flex-shrink: 0;">{{ mb_strtoupper(mb_substr(preg_replace(\'/^Dot\.?/\', \'\', $platform[\'name\']) ?: $platform[\'name\'], 0, 1)) }}</span>
+                                    <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: {{ $platform['accent'] ?? 'var(--accent)' }}; color: #ffffff; font-size: 13px; font-weight: 700; flex-shrink: 0;">{{ mb_strtoupper(mb_substr(preg_replace('/^Dot\.?/', '', $platform['name']) ?: $platform['name'], 0, 1)) }}</span>
                                     <span class="font-display" style="font-weight: 600; font-size: 13px; color: var(--ink);">{{ $platform['name'] }}</span>
                                 </a>
                             @endforeach

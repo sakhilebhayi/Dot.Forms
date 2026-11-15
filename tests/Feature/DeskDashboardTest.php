@@ -225,7 +225,7 @@ class DeskDashboardTest extends TestCase
         $this->assertSame(1, substr_count($html, 'data-primary-action'));
         $this->assertStringContainsString('action="'.route('teams.forms.store', $team).'"', $html);
 
-        preg_match('/<main class="cb-page">(.*?)<\/main>/s', $html, $main);
+        preg_match('/<main[^>]*class="cb-page"[^>]*>(.*?)<\/main>/s', $html, $main);
         $this->assertStringNotContainsString('style=', $main[1]);
         $this->assertDoesNotMatchRegularExpression('/\son[a-z]+\s*=/i', $main[1]);
         $this->assertStringNotContainsString('<script', $main[1]);

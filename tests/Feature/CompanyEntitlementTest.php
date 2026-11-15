@@ -473,8 +473,16 @@ class CompanyEntitlementTest extends TestCase
     private function livewireSnapshot(Team $team): string
     {
         $page = $this->get(route('teams.forms', $team))->assertOk()->getContent();
-        preg_match('/wire:snapshot="([^"]+)"[^>]*wire:id="[^"]+"[^>]*wire:name="forms\.index"|wire:name="forms\.index"[^>]*wire:snapshot="([^"]+)"|wire:snapshot="([^"]+)"/', $page, $m);
-        $snapshot = html_entity_decode(collect(array_slice($m, 1))->filter()->first() ?? '', ENT_QUOTES);
+        // R-52: the header search is a Livewire component on every page too; take the forms index's snapshot (the one with the status filter).
+        preg_match_all('/wire:snapshot="([^"]+)"/', $page, $all);
+        $snapshot = '';
+        foreach ($all[1] as $candidate) {
+            $decoded = html_entity_decode($candidate, ENT_QUOTES);
+            if (str_contains($decoded, '"status":"all"')) {
+                $snapshot = $decoded;
+                break;
+            }
+        }
         $this->assertNotSame('', $snapshot, 'the forms index component is on the page');
 
         return $snapshot;
