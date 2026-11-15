@@ -5,10 +5,10 @@
         </x-slot>
 
         <div x-data="{ recovery: false }">
-            <h1 style="font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;" x-show="! recovery">
+            <h1 style="font-family: var(--dot-font-sans); font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;" x-show="! recovery">
                 Two-factor authentication
             </h1>
-            <h1 style="font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;" x-cloak x-show="recovery">
+            <h1 style="font-family: var(--dot-font-sans); font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;" x-cloak x-show="recovery">
                 Enter recovery code
             </h1>
 
@@ -27,7 +27,7 @@
                 <div x-show="! recovery">
                     <label for="code" style="display: block; font-size: 13px; font-weight: 600; color: #5b5240; margin-bottom: 6px;">Authentication code</label>
                     <input id="code" type="text" inputmode="numeric" name="code" autofocus x-ref="code" autocomplete="one-time-code"
-                        style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 14px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s; text-align: center; letter-spacing: .1em;"
+                        style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 16px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s; text-align: center; letter-spacing: .1em;"
                         onfocus="this.style.borderColor='#f1c62e'; this.style.boxShadow='0 0 0 3px rgba(241,198,46,0.22)'" onblur="this.style.borderColor='rgba(34, 27, 18, 0.18)'; this.style.boxShadow='none'"
                         placeholder="000000">
                 </div>
@@ -35,7 +35,7 @@
                 <div x-cloak x-show="recovery">
                     <label for="recovery_code" style="display: block; font-size: 13px; font-weight: 600; color: #5b5240; margin-bottom: 6px;">Recovery code</label>
                     <input id="recovery_code" type="text" name="recovery_code" x-ref="recovery_code" autocomplete="one-time-code"
-                        style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 14px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s;"
+                        style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 16px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s;"
                         onfocus="this.style.borderColor='#f1c62e'; this.style.boxShadow='0 0 0 3px rgba(241,198,46,0.22)'" onblur="this.style.borderColor='rgba(34, 27, 18, 0.18)'; this.style.boxShadow='none'"
                         placeholder="xxxx-xxxx-xxxx-xxxx">
                 </div>

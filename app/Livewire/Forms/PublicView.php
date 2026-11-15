@@ -333,6 +333,34 @@ class PublicView extends Component
         $this->reset('uploads', 'website', 'consentAccepted');
     }
 
+    /**
+     * What a respondent reads in an error: "The Your name field is required", not "The answers.24 field is required".
+     *
+     * @return array<string, string>
+     */
+    protected function validationAttributes(): array
+    {
+        $names = [];
+
+        foreach ($this->form->fields as $field) {
+            $names['answers.'.$field->id] = $field->label;
+            $names['answers.'.$field->id.'.*'] = $field->label;
+            $names['uploads.'.$field->id] = $field->label;
+        }
+
+        return $names;
+    }
+
+    /** @return array<string, string> */
+    protected function messages(): array
+    {
+        return [
+            'answers.*.required' => 'Please answer “:attribute”.',
+            'answers.*.required_if' => 'Please answer “:attribute”.',
+            'uploads.*.required' => 'Please add a file for “:attribute”.',
+        ];
+    }
+
     protected function rules(): array
     {
         $rules = [

@@ -237,7 +237,7 @@ class DeskDashboardTest extends TestCase
 
         $html = $this->actingAs($owner)->get('/dashboard')->assertOk()->getContent();
 
-        $this->assertStringContainsString('class="cb-spine__find"', $html);
+        $this->assertStringContainsString('data-dh-search', $html);
         $this->assertStringContainsString('role="search"', $html);
         $this->assertStringContainsString('action="'.route('teams.forms', $team).'"', $html);
         $this->assertStringContainsString('/dot-ui/js/dot-search.js', $html);

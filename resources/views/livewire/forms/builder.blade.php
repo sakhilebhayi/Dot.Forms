@@ -481,12 +481,11 @@
             <details>
                 <summary>Share</summary>
                 <div>
-                    <div class="cb-field" x-data="{ copied: false }">
+                    <div class="cb-field" x-data="{ copied: false, copyLink(url) { try { navigator.clipboard.writeText(url); this.copied = true; setTimeout(() => this.copied = false, 1500); } catch (e) {} } }">
                         <label class="cb-label" for="fb-public-link">Public link</label>
-                        <div style="display:flex;gap:6px;">
-                            <input id="fb-public-link" type="text" readonly value="{{ $publicUrl }}" class="cb-input" style="font-family:var(--cb-mono);font-size:12px;" @focus="$el.select()" />
-                            <button type="button" class="cb-btn cb-btn--sm" style="flex-shrink:0;"
-                                @click="try { navigator.clipboard.writeText(@js($publicUrl)); copied = true; setTimeout(() => copied = false, 1500); } catch (e) {}">
+                        <div class="cb-linkrow">
+                            <input id="fb-public-link" type="text" readonly value="{{ $publicUrl }}" class="cb-input cb-input--mono" @focus="$el.select()" />
+                            <button type="button" class="cb-btn cb-btn--sm" @click="copyLink(@js($publicUrl))">
                                 <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied</span>
                             </button>
                         </div>

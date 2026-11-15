@@ -71,7 +71,7 @@
                 <div style="margin-top: 12px; font-size: 13px; color: #6B7280;">
                     {{ __('Your email address is unverified.') }}
 
-                    <button type="button" style="margin-left: 4px; background: none; border: none; color: var(--yellow-dark); cursor: pointer; text-decoration: underline; font-weight: 500; font-family: 'Inter', sans-serif;" wire:click.prevent="sendEmailVerification">
+                    <button type="button" style="margin-left: 4px; background: none; border: none; color: var(--yellow-dark); cursor: pointer; text-decoration: underline; font-weight: 500; font-family: var(--dot-font-sans);" wire:click.prevent="sendEmailVerification">
                         {{ __('Click here to re-send the verification email.') }}
                     </button>
                 </div>

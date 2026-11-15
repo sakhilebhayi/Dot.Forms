@@ -4,7 +4,7 @@
             <x-authentication-card-logo />
         </x-slot>
 
-        <h1 style="font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;">Verify your email</h1>
+        <h1 style="font-family: var(--dot-font-sans); font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;">Verify your email</h1>
         <p style="font-size: 14px; color: #5b5240; margin: 0 0 28px;">We've sent a verification link to your email address. Click the link to verify your account.</p>
 
         @if (session('status') == 'verification-link-sent')

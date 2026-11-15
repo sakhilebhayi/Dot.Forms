@@ -4,7 +4,7 @@
             <x-authentication-card-logo />
         </x-slot>
 
-        <h1 style="font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;">Welcome back</h1>
+        <h1 style="font-family: var(--dot-font-sans); font-size: 1.6rem; font-weight: 600; color: #221b12; margin: 0 0 6px;">Welcome back</h1>
         <p style="font-size: 14px; color: #5b5240; margin: 0 0 28px;">Sign in to your Dot.Forms workspace.</p>
 
         <x-validation-errors class="mb-4" />
@@ -21,7 +21,7 @@
             <div>
                 <label for="email" style="display: block; font-size: 13px; font-weight: 600; color: #5b5240; margin-bottom: 6px;">Email address</label>
                 <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                    style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 14px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s;"
+                    style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 16px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s;"
                     onfocus="this.style.borderColor='#f1c62e'; this.style.boxShadow='0 0 0 3px rgba(241,198,46,0.22)'" onblur="this.style.borderColor='rgba(34, 27, 18, 0.18)'; this.style.boxShadow='none'"
                     placeholder="you@example.com">
             </div>
@@ -30,18 +30,18 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <label for="password" style="font-size: 13px; font-weight: 600; color: #5b5240;">Password</label>
                     @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" style="font-size: 12px; color: #a97b0f; font-weight: 500; text-decoration: none;">Forgot password?</a>
+                        <a href="{{ route('password.request') }}" style="font-size: 14px; color: #a97b0f; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px;">Forgot password?</a>
                     @endif
                 </div>
                 <input id="password" type="password" name="password" required autocomplete="current-password"
-                    style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 14px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s;"
+                    style="width: 100%; height: 44px; background: white; border: 1.5px solid rgba(34, 27, 18, 0.18); border-radius: 10px; padding: 0 14px; font-size: 16px; color: #221b12; outline: none; transition: border-color .15s, box-shadow .15s;"
                     onfocus="this.style.borderColor='#f1c62e'; this.style.boxShadow='0 0 0 3px rgba(241,198,46,0.22)'" onblur="this.style.borderColor='rgba(34, 27, 18, 0.18)'; this.style.boxShadow='none'"
                     placeholder="••••••••">
             </div>
 
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; min-height: 44px;">
                 <input type="checkbox" id="remember_me" name="remember"
-                    style="width: 16px; height: 16px; accent-color: #f1c62e; cursor: pointer;">
+                    style="width: 22px; height: 22px; accent-color: #f1c62e; cursor: pointer;">
                 <span style="font-size: 13px; color: #5b5240;">Keep me signed in</span>
             </label>
 

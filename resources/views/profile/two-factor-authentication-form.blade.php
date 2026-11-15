@@ -8,7 +8,7 @@
     </x-slot>
 
     <x-slot name="content">
-        <h3 style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin: 0; font-family: 'Sora', sans-serif;">
+        <h3 style="font-size: 16px; font-weight: 700; color: #1A1A1A; margin: 0; font-family: var(--dot-font-sans);">
             @if ($this->enabled)
                 @if ($showingConfirmation)
                     {{ __('Finish enabling two factor authentication.') }}
@@ -68,7 +68,7 @@
                     </p>
                 </div>
 
-                <div style="display: grid; gap: 8px; max-width: 700px; margin-top: 16px; padding: 16px; font-family: 'Courier New', monospace; font-size: 12px; background: #F3F4F6; border-radius: 8px; border: 1px solid #E5E7EB;">
+                <div style="display: grid; gap: 8px; max-width: 700px; margin-top: 16px; padding: 16px; font-family: var(--dot-font-mono); font-size: 12px; background: #F3F4F6; border-radius: 8px; border: 1px solid #E5E7EB;">
                     @foreach (json_decode(decrypt($this->user->two_factor_recovery_codes), true) as $code)
                         <div>{{ $code }}</div>
                     @endforeach

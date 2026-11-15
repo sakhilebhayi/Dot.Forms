@@ -18,6 +18,8 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
 @import './tailwind-v3-palette.css';
+/* R-52: dot-ui's Roboto scale as Tailwind's font-sans / font-mono / text-dot-*. */
+@import '../../dot-ui/tailwind/tailwind-theme.css';
 
 @source '../views/**/*.blade.php';
 @source '../../storage/framework/views/*.php';
