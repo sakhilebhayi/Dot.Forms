@@ -310,7 +310,7 @@ class LandingExperienceTest extends TestCase
     /** The page body between the spine and the scripts: the landing itself, markup included. */
     private function landingHtml(string $html): string
     {
-        $this->assertSame(1, preg_match('/<main class="cb-page">(.*?)<\/main>/s', $html, $main));
+        $this->assertSame(1, preg_match('/<main[^>]*class="cb-page"[^>]*>(.*?)<\/main>/s', $html, $main));
 
         return $main[1];
     }

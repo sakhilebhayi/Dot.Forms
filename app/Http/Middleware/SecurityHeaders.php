@@ -58,15 +58,14 @@ class SecurityHeaders
     }
 
     /**
-     * Outside origins in use: cdn.jsdelivr.net (Chart.js on the analytics dashboard), Google Fonts (stylesheet host and font host),
-     * Unsplash (landing and sign-in photographs) and ui-avatars.com, which Jetstream's HasProfilePhoto uses for a user's default avatar.
+     * Outside origins in use (R-52: no script, style or font host any more; Chart.js and Roboto are served from this origin): Unsplash (landing and sign-in photographs) and ui-avatars.com, which Jetstream's HasProfilePhoto uses for a user's default avatar.
      */
     private function policy(): string
     {
         return "default-src 'self'; "
-            ."script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
-            ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            ."font-src 'self' data: https://fonts.gstatic.com; "
+            ."script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            ."style-src 'self' 'unsafe-inline'; "
+            ."font-src 'self' data:; "
             ."img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; "
             ."media-src 'self' blob:; "
             // Local development talks to Reverb over plaintext ws:; production websockets are wss: only.

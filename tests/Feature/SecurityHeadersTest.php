@@ -62,12 +62,13 @@ class SecurityHeadersTest extends TestCase
         $policy = (string) $this->get('/')->headers->get('Content-Security-Policy-Report-Only');
 
         preg_match('/script-src ([^;]+);/', $policy, $script);
-        $this->assertStringContainsString('https://cdn.jsdelivr.net', $script[1], 'Chart.js on the analytics dashboard');
+        $this->assertStringNotContainsString('jsdelivr', $script[1], 'R-52: Chart.js is bundled with the app, no script host is allowed');
         $this->assertStringContainsString("'unsafe-inline'", $script[1], 'Livewire and Jetstream render inline scripts');
         $this->assertStringContainsString("'unsafe-eval'", $script[1], 'Alpine evaluates its expressions with the Function constructor');
 
-        $this->assertMatchesRegularExpression('/style-src [^;]*https:\/\/fonts\.googleapis\.com/', $policy);
-        $this->assertMatchesRegularExpression('/font-src [^;]*https:\/\/fonts\.gstatic\.com/', $policy);
+        $this->assertStringNotContainsString('fonts.googleapis.com', $policy, 'R-52: Roboto is self-hosted');
+        $this->assertStringNotContainsString('fonts.gstatic.com', $policy);
+        $this->assertStringContainsString("font-src 'self' data:;", $policy);
         $this->assertMatchesRegularExpression('/img-src [^;]*data: blob:[^;]*https:\/\/images\.unsplash\.com/', $policy);
         $this->assertMatchesRegularExpression('/img-src [^;]*https:\/\/ui-avatars\.com/', $policy, "Jetstream's default avatar");
         $this->assertStringContainsString("connect-src 'self' wss: https:", $policy);

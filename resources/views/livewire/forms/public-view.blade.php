@@ -71,7 +71,7 @@
 
 @if (! empty($customCss))
     <style id="form-custom-css"></style>
-    <script type="application/json" id="form-custom-css-data">{{ json_encode(['css' => $customCss]) }}</script>
+    <script type="application/json" id="form-custom-css-data">@json(['css' => $customCss])</script>
     <script>
         const customCssData = JSON.parse(document.getElementById('form-custom-css-data').textContent || '{"css":""}');
         document.getElementById('form-custom-css').textContent = customCssData.css || '';

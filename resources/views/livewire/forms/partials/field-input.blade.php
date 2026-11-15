@@ -174,8 +174,10 @@
             'phone' => 'tel', 'url' => 'url', 'time' => 'time', 'datetime' => 'datetime-local',
             default => 'text',
         };
+        $autocomplete = match ($field->type) { 'email' => 'email', 'phone' => 'tel', 'url' => 'url', default => 'off' };
+        $inputMode = match ($field->type) { 'email' => 'email', 'phone' => 'tel', 'url' => 'url', 'number' => 'decimal', default => null };
     @endphp
-    <input id="field-{{ $field->id }}" type="{{ $inputType }}" wire:model.blur="answers.{{ $field->id }}" placeholder="{{ $field->placeholder }}" />
+    <input id="field-{{ $field->id }}" type="{{ $inputType }}" autocomplete="{{ $autocomplete }}" @if ($inputMode) inputmode="{{ $inputMode }}" @endif wire:model.blur="answers.{{ $field->id }}" placeholder="{{ $field->placeholder }}" />
 @endif
 
 @error('answers.' . $field->id)

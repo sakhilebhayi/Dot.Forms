@@ -14,6 +14,8 @@
  */
 @import 'tailwindcss' source(none);
 @import './tailwind-v3-palette.css';
+/* R-52: dot-ui's Roboto scale as Tailwind's font-sans / font-mono / text-dot-* (the scale itself lives in public/dot-ui/css/dot-type.css). */
+@import '../../dot-ui/tailwind/tailwind-theme.css';
 
 @source '../views/**/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -70,20 +72,12 @@
 }
 
 /*
- * The font utilities, as tailwind.config.js had them (Figtree first on `sans`).
- * Declared `inline` and NOT as plain --font-* variables: the layouts and the
- * welcome page define their own --font-mono (IBM Plex Mono) on :root, which would
- * otherwise replace these values under `font-mono` and under preflight's
- * `code`/`pre` rule.
+ * R-52: the font utilities are Roboto (and a system monospace for readouts). Declared `inline` and NOT as plain --font-*
+ * variables so the layouts' own variables cannot replace these values under `font-mono` and under preflight's `code`/`pre`.
  */
 @theme inline {
-    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    --default-font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    --default-mono-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-        'Courier New', monospace;
+    --default-font-family: var(--dot-font-sans);
+    --default-mono-font-family: var(--dot-font-mono);
 }
 
 /*

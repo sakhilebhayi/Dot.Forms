@@ -122,7 +122,7 @@ class DotUiHeaderTest extends TestCase
         $this->assertStringContainsString('class="dsr-filter"', $html);
         $this->assertStringContainsString('wire:model.live.debounce.300ms="search"', $html);
         // R-51 desk: the spine's pill only GETs the book's filter (?q=); the filter's own wiring is untouched above.
-        $this->assertSame(1, substr_count($html, 'class="dsr-input"'), 'one pill, in the spine');
+        $this->assertSame(1, substr_count($html, 'class="dsr-input"'), 'one pill, in the header');
         $this->assertStringContainsString('action="'.route('teams.forms', $team).'"', $html);
         $this->assertMatchesRegularExpression('/<input[^>]*name="q"[^>]*class="dsr-input"|<input[^>]*class="dsr-input"[^>]*name="q"/', $html);
 
@@ -209,12 +209,11 @@ class DotUiHeaderTest extends TestCase
 
         $html = $this->actingAs($owner)->get(route('dashboard'))->getContent();
 
-        foreach (['dot-fonts', 'dot-tokens', 'dot-search', 'dot-switcher'] as $css) {
-            $this->assertFileExists(public_path('dot-ui/css/'.$css.'.css'));
-            $this->assertMatchesRegularExpression('#<link rel="stylesheet" href="[^"]*/dot-ui/css/'.$css.'\.css">#', $html);
-        }
-        $this->assertFileExists(public_path('dot-ui/js/dot-switcher.js'));
-        $this->assertStringContainsString('/dot-ui/js/dot-switcher.js', $html);
+        // dot-ui 0.6.1: one minified stylesheet (roboto, type, tokens, search, switcher, header) and one minified core script.
+        $this->assertFileExists(public_path('dot-ui/css/dot-ui.min.css'));
+        $this->assertMatchesRegularExpression('#<link rel="stylesheet" href="[^"]*/dot-ui/css/dot-ui\.min\.css">#', $html);
+        $this->assertFileExists(public_path('dot-ui/js/dot-ui-core.min.js'));
+        $this->assertStringContainsString('/dot-ui/js/dot-ui-core.min.js', $html);
 
         // The shared markup adds no style="" attribute and no inline script (the layout's own x-cloak rule predates it).
         $start = strpos($html, 'data-dsw');
@@ -249,7 +248,9 @@ class DotUiHeaderTest extends TestCase
 
         $this->assertStringNotContainsString('data-dsw', $html);
         $this->assertStringNotContainsString('dsr', $html);
-        $this->assertStringNotContainsString('dot-ui', $html);
+        $this->assertStringNotContainsString('data-dh', $html, 'no header on the public document');
+        $this->assertStringNotContainsString('dot-ui-core', $html);
+        $this->assertStringContainsString('/dot-ui/css/dot-roboto.min.css', $html, 'R-52: the document is Roboto too');
         Http::assertNothingSent();
     }
 
@@ -258,6 +259,7 @@ class DotUiHeaderTest extends TestCase
         $html = $this->get(route('login'))->assertOk()->getContent();
 
         $this->assertStringNotContainsString('data-dsw', $html);
-        $this->assertStringNotContainsString('dot-ui', $html);
+        $this->assertStringNotContainsString('data-dh', $html);
+        $this->assertStringNotContainsString('dot-ui-core', $html);
     }
 }
