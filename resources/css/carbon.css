@@ -966,3 +966,8 @@ body.cb {
 }
 .cb-doc .cb-choice { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
 .cb-doc .cb-choice input { width: 22px; height: 22px; flex: none; accent-color: var(--cbd-accent); margin: 0; }
+@media (max-width: 1024px) {
+    .cb-desk__back a { min-width: 44px; justify-content: center; }
+    .cb-canvasbar__widths button { min-height: 44px; }
+    .cb .dsr-item { min-height: 44px; }
+}
