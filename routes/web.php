@@ -18,6 +18,7 @@ use App\Livewire\Forms\PublicView;
 use App\Livewire\Forms\Submissions;
 use App\Livewire\Forms\Templates;
 use App\Models\Team;
+use App\Support\CentralSignIn;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Gate;
@@ -116,5 +117,5 @@ Route::get('/guardian/health', GuardianHealthController::class)
 // Public sign-up is closed (accounts are created by InfoDot at first sign-in). Keep the named route so any link or
 // invitation email that points at it lands on the login page instead of failing.
 if (! Features::enabled(Features::registration())) {
-    Route::redirect('/register', '/login')->name('register');
+    Route::get('/register', fn () => redirect()->to(CentralSignIn::register('/login')))->name('register');
 }

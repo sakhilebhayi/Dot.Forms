@@ -971,3 +971,19 @@ body.cb {
     .cb-canvasbar__widths button { min-height: 44px; }
     .cb .dsr-item { min-height: 44px; }
 }
+
+/* ---------------------------------------------------------------- R-54: sign-in claim and error sheets */
+.cb-claim__email { overflow-wrap: anywhere; }
+.cb-claim .cb-input.cb-claim__code { height: 52px; font: 600 24px var(--cb-mono); letter-spacing: 0.3em; text-align: center; font-variant-numeric: tabular-nums; }
+.cb-claim .cb-input.cb-claim__code[aria-invalid='true'] { border-color: var(--cb-stamp-red); }
+.cb-claim .cb-input:focus-visible { outline: 2px solid var(--cb-carbon); outline-offset: 2px; }
+.cb-claim__help { margin: 6px 0 0; font-size: 13px; color: var(--cb-muted); }
+.cb-claim__ref { margin-top: 20px; font-family: var(--cb-mono); }
+.cb-error:empty { display: none; }
+.cb a.cb-btn.cb-claim__go, .cb button.cb-btn.cb-claim__go { height: 44px; padding: 0 20px; font-size: 14px; justify-content: center; }
+.cb a.cb-btn.cb-claim__go.cb-btn--primary { color: var(--cb-sheet); }
+.cb-claim .cb-claim__aside { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.cb-claim .cb-claim__aside form { margin: 0; }
+.cb-claim .cb-claim__aside .cb-btn { height: 44px; }
+.cb-claim .cb-gate__foot { gap: 10px; }
+@media (max-width: 640px) { .cb-claim .cb-claim__go { width: 100%; } .cb-claim .cb-gate__foot { flex-direction: column; align-items: stretch; } }

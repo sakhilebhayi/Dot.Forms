@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RefuseLocalSignIn;
 use App\Http\Middleware\SecurityHeaders;
 use App\Services\Guardian\ErrorCounter;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Last in the global stack so it sees every response, including 404s and error pages.
         $middleware->append(SecurityHeaders::class);
+
+        $middleware->alias(['local.signin' => RefuseLocalSignIn::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Feeds the guardian's hourly error counter (ErrorRateCheck). The
