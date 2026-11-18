@@ -101,7 +101,8 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // R-54: `local.signin` refuses the password, reset and two-factor posts while the central sign-in is on.
+    'middleware' => ['web', 'local.signin'],
 
     /*
     |--------------------------------------------------------------------------

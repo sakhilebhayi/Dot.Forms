@@ -46,7 +46,7 @@
     @endphp
 
     <x-dot.header brand-href="{{ route('dashboard') }}" brand-label="Dot.Forms desk" :nav="$nav" :account="$account"
-        :guest="$user ? null : ['login' => ['label' => 'Log in', 'href' => route('login')]]"
+        :guest="$user ? null : ['login' => ['label' => 'Log in', 'href' => \App\Support\CentralSignIn::login()]] + (\App\Support\CentralSignIn::active() ? ['register' => ['label' => 'Create account', 'href' => \App\Support\CentralSignIn::register(route('register'))]] : [])"
         :context="$team?->name" skip="#main">
         <x-slot:brand><span class="dh-brand__name">Dot<span>.</span>Forms</span></x-slot:brand>
         <x-slot:search>
