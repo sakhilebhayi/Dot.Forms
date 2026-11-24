@@ -296,7 +296,7 @@ class CompanyEntitlementTest extends TestCase
         Log::shouldHaveReceived('warning')->once()->withArgs(fn ($message) => str_contains($message, 'InfoDot entitlement check gave no answer'));
     }
 
-    public function test_a_failure_is_remembered_for_a_minute_and_an_answer_for_ten(): void
+    public function test_a_failure_is_remembered_for_a_minute_and_an_answer_for_a_minute(): void
     {
         [$owner, $team] = $this->company();
         $this->infodotSays([self::readUrl(self::ACME) => Http::sequence()
@@ -309,6 +309,7 @@ class CompanyEntitlementTest extends TestCase
         $this->travel(EntitlementClient::FAILURE_TTL + 1)->seconds();
         $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(403);
 
+        $this->assertSame(60, EntitlementClient::ANSWER_TTL);
         $this->travel(EntitlementClient::ANSWER_TTL - 5)->seconds();
         $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(403);
         Http::assertSentCount(2);
@@ -607,5 +608,129 @@ class CompanyEntitlementTest extends TestCase
     public function test_livewire_updates_from_the_signed_in_area_carry_the_check(): void
     {
         $this->assertContains(EnsureCompanyEntitled::class, app(PersistentMiddleware::class)->getPersistentMiddleware());
+    }
+
+    // ---- R-61 availability contract -------------------------------------------------------------------------------
+
+    private static function availability(bool $entitled, ?bool $available, ?string $message = null): array
+    {
+        $body = self::platforms(self::ACME, $entitled, $entitled ? 'active' : 'suspended');
+
+        foreach ($body['platforms'] as &$row) {
+            if ($row['key'] === 'forms') {
+                if ($available !== null) {
+                    $row['available'] = $available;
+                }
+                if ($message !== null) {
+                    $row['message'] = $message;
+                }
+            }
+        }
+
+        return $body;
+    }
+
+    private function says(array $body, int $status = 200): void
+    {
+        $this->infodotSays([self::readUrl(self::ACME) => Http::response($status === 200 ? $body : '', $status)]);
+    }
+
+    public function test_a_platform_switched_off_gives_503_even_when_the_company_holds_it(): void
+    {
+        [$owner, $team, $form] = $this->company();
+        $this->says(self::availability(true, false, 'Back at 18:00.'));
+
+        $response = $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(503);
+        $this->assertStringContainsString('Back at 18:00.', $response->getContent());
+        $this->assertStringNotContainsString('Site induction register', $response->getContent());
+        $this->assertSame('60', $response->headers->get('Retry-After'));
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+
+        $json = $this->actingAs($owner)->getJson(route('teams.forms', $team))->assertStatus(503);
+        $this->assertSame('platform_unavailable', $json->json('reason'));
+        $this->assertTrue((bool) $form->fresh()->is_published, 'nothing is changed');
+        $this->assertAuthenticated();
+    }
+
+    public function test_it_is_checked_before_what_the_company_holds(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->says(self::availability(false, false));
+
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(503);
+    }
+
+    public function test_a_livewire_update_gets_a_json_503_while_switched_off(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->says(self::availability(true, true));
+        $this->actingAs($owner);
+        $before = Form::withoutTeamScope()->where('team_id', $team->id)->count();
+        $snapshot = $this->livewireSnapshot($team);
+
+        $this->says(self::availability(true, false));
+        $this->travel(70)->seconds();
+        $response = $this->livewireCreateForm($snapshot);
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertSame('platform_unavailable', $response->json('reason'));
+        $this->assertSame($before, Form::withoutTeamScope()->where('team_id', $team->id)->count());
+    }
+
+    public function test_it_is_back_within_a_minute_of_switching_on(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->says(self::availability(true, false));
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(503);
+
+        $this->says(self::availability(true, true));
+        $this->travel(70)->seconds();
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertOk()->assertSee('Site induction register');
+    }
+
+    public function test_an_older_infodot_without_the_fields_is_not_a_switch_off(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->says(self::availability(true, null));
+
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertOk();
+    }
+
+    public function test_an_outage_keeps_the_last_unavailable_answer_for_six_hours_then_carries_on(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->says(self::availability(true, false));
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(503);
+
+        $this->says([], 500);
+        $this->travel(2)->minutes();
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(503);
+        $this->travel(5)->hours();
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertStatus(503);
+
+        $this->travel(2)->hours();
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertOk();
+    }
+
+    public function test_available_stays_available_through_an_outage(): void
+    {
+        [$owner, $team] = $this->company();
+        $this->says(self::availability(true, true));
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertOk();
+
+        $this->says([], 500);
+        $this->travel(2)->minutes();
+        $this->actingAs($owner)->get(route('teams.forms', $team))->assertOk();
+    }
+
+    public function test_a_public_form_still_works_while_switched_off(): void
+    {
+        [$owner, , $form] = $this->company();
+        $this->says(self::availability(true, false));
+
+        $this->actingAs($owner)->get(route('forms.public', $form->slug))->assertOk()->assertSee('Site induction register');
+
+        $this->app['auth']->forgetGuards();
+        $this->get(route('forms.public', $form->slug))->assertOk()->assertSee('Site induction register');
     }
 }
