@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\InfoDot\EntitlementClient;
 use App\Support\EntitlementRefusal;
 use Closure;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,10 +16,14 @@ use Symfony\Component\HttpFoundation\Response;
  * The signed-in area honours the company's entitlement (R-50).
  *
  * InfoDot decides whether a company holds Dot.Forms. A person who is already signed in must stop working when that
- * ends, so each request in the signed-in area asks (through a ten-minute cache) whether the company whose book is
+ * ends, so each request in the signed-in area asks (through a one-minute cache) whether the company whose book is
  * being opened still holds the platform. A clear "no" answers with the plain refusal page and HTTP 403: nothing is
  * read from or written to the book. Anything else, including every kind of failure, lets the request through
  * exactly as before.
+ *
+ * R-61: when InfoDot has switched Dot.Forms off (maintenance, unavailable) signed-in requests get a 503 with
+ * InfoDot's message, ahead of the company check. Nothing is deleted and nobody is signed out. The public form is
+ * outside this middleware and keeps working.
  *
  * It sits on the signed-in route group (routes/web.php) and on Jetstream's own pages (config/jetstream.php), and is
  * a Livewire persistent middleware, so component updates from those pages are checked too. It is not on sign-in,
@@ -74,6 +79,11 @@ class EnsureCompanyEntitled
 
         $answer = $this->entitlements->forCompany((string) $team->infodot_team_uuid);
 
+        // R-61: a platform InfoDot has switched off is off for everyone, whatever the company holds. Checked first.
+        if ($answer !== null && ($answer['available'] ?? true) === false) {
+            return $this->unavailable($request, $answer['message'] ?? null);
+        }
+
         if ($answer === null || $answer['entitled'] === true) {
             return $next($request);
         }
@@ -85,13 +95,38 @@ class EnsureCompanyEntitled
         ));
     }
 
+    /** 503 and nothing else: no record is read or changed, the person stays signed in. Livewire gets a real JSON 503 by abort. */
+    private function unavailable(Request $request, ?string $message): Response
+    {
+        $text = $message ?? 'Dot.Forms is temporarily unavailable.';
+        $headers = ['Retry-After' => '60', 'Cache-Control' => 'no-store, private'];
+
+        if ($this->isLivewire($request) || $request->expectsJson()) {
+            $json = response()->json(['message' => $text, 'reason' => 'platform_unavailable'], 503, $headers);
+
+            // Livewire discards a non-redirect response from a persistent middleware, so it must abort.
+            if ($this->isLivewire($request)) {
+                throw new HttpResponseException($json);
+            }
+
+            return $json;
+        }
+
+        return response()->view('errors.platform-unavailable', ['message' => $message, 'signedIn' => true], 503, $headers);
+    }
+
+    private function isLivewire(Request $request): bool
+    {
+        return $request->headers->has('X-Livewire') || request()->headers->has('X-Livewire') || $request->is('livewire/*', 'livewire-*/*');
+    }
+
     /**
      * Livewire throws away any non-redirect response a persistent middleware returns, so a refusal page would let a
      * component update run. On a Livewire update the refusal must abort: nothing runs and no component comes back.
      */
     private function refuse(Request $request, Closure $page): Response
     {
-        if ($request->headers->has('X-Livewire') || request()->headers->has('X-Livewire')) {
+        if ($this->isLivewire($request)) {
             abort(403);
         }
 
