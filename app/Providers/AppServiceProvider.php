@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\EssentialCron;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -24,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        EssentialCron::listen();
+
         // R-50: Livewire updates from a page in the signed-in area carry that page's entitlement check with them.
         Livewire::addPersistentMiddleware([EnsureCompanyEntitled::class]);
 
